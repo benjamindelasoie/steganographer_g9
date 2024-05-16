@@ -3,27 +3,20 @@ package ar.edu.itba.cripto.model;
 import ar.edu.itba.cripto.model.steganography.SteganographyAlgorithm;
 
 import java.io.File;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 public class Steganographer {
-    private final CipherHandle cipherHandle;
     private final SteganographyAlgorithm stegAlgorithm;
-    private final String password;
 
-    public Steganographer(final CipherHandle cipher, final SteganographyAlgorithm stegAlgorithm, final String password) {
-        this.cipherHandle = cipher;
+    public Steganographer(final SteganographyAlgorithm stegAlgorithm) {
         this.stegAlgorithm = stegAlgorithm;
-        this.password = password;
     }
 
-    public int embed(byte[] data, File cover, String outputFile) throws Exception {
-
-        return 0;
+    public int embed(byte[] msg, File cover, File outputFile) throws Exception {
+        return this.stegAlgorithm.hideData(msg, cover, outputFile);
     }
 
-    public int extract() {
-
-        return 0;
+    // TODO: Implement.
+    public byte[] extract(File cover) throws Exception {
+        return "Falta".getBytes();
     }
 }

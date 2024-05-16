@@ -1,20 +1,18 @@
 package ar.edu.itba.cripto.model.steganography;
 
-import ar.edu.itba.cripto.model.BMPV3Image;
-
-import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 
 public abstract class SteganographyAlgorithm {
 
 
     public static SteganographyAlgorithm getInstance(String name) {
-        switch(name) {
+        switch (name) {
             case "LSB" -> {
-                return new LSBAlgorithm(1);
+                return new LSBAlgorithm();
             }
             case "LSB4" -> {
-                return new LSBAlgorithm(4);
+                return new LSB4Algorithm();
             }
             case "LSBI" -> {
                 return new LSBIAlgorithm();
@@ -23,7 +21,7 @@ public abstract class SteganographyAlgorithm {
         }
     }
 
-    public abstract void hideData(byte[] data, BufferedImage cover, File outputFile);
+    public abstract int hideData(byte[] data, File cover, File outputFile) throws IOException;
 
-    abstract byte[] extractData(BufferedImage image);
+    public abstract byte[] extractData(File image) throws IOException;
 }

@@ -12,6 +12,7 @@ import java.security.NoSuchAlgorithmException;
 public class CipherHandle {
     private final static String DEFAULT_PADDING = "PKCS5Padding";
 
+    private String password;
     private Cipher cipher;
     private String cipherName;
     private String cipherMode;

@@ -1,18 +1,30 @@
 package ar.edu.itba.cripto;
 
+import ar.edu.itba.cripto.model.BMPV3Image;
 import ar.edu.itba.cripto.model.CipherHandle;
+import ar.edu.itba.cripto.model.EncryptingSteganographer;
 import ar.edu.itba.cripto.model.steganography.LSBAlgorithm;
 import ar.edu.itba.cripto.model.Steganographer;
 import ar.edu.itba.cripto.model.steganography.SteganographyAlgorithm;
+import org.apache.commons.io.EndianUtils;
 import org.w3c.dom.css.RGBColor;
 import picocli.CommandLine.*;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.WritableRaster;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 @Command(name = "-embed", sortOptions = false)
@@ -51,22 +63,35 @@ public class EmbedCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         System.out.println("Hello from Embedder");
 
-        // Probando lectura y escritura de BMP
-        BufferedImage image = ImageIO.read(coverImage);
 
-        System.out.println("Image loaded: " + image.toString());
-
-        System.out.println("Leyendo imagen");
-        for (int x = 0; x < image.getWidth(); x++) {
-            for (int y = 0; y < image.getHeight(); y++) {
-                Color color = new Color(image.getRGB(x, y));
-                image.setRGB(x, y, new Color(color.getBlue(), color.getRed(), color.getGreen()).getRGB());
-            }
+        // Instantiate steganographer
+        SteganographyAlgorithm steganographyAlgorithm = SteganographyAlgorithm.getInstance(stegName);
+        Steganographer steganographer;
+        if (password != null) {
+            steganographer = new EncryptingSteganographer(steganographyAlgorithm, cipherName, cipherModeName, password);
+        } else {
+            steganographer = new Steganographer(steganographyAlgorithm);
         }
 
-        File salida = new File("../salida.bmp");
-        System.out.println("Escribiendo bmp en: " + salida.getAbsolutePath());
-        ImageIO.write(image, "bmp", salida);
-        return 0;
+        // Do call
+        byte[] msgBytes = Files.readAllBytes(inputFile.toPath());
+        return steganographer.embed(msgBytes, coverImage, outputFile);
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        File inputFile = new File("../archivo.txt");
+        File cover = new File("../bmp_images/bmp_24.bmp");
+        File output = new File("../averga.bmp");
+
+        Steganographer steg = new Steganographer(new LSBAlgorithm());
+        try {
+            steg.embed(Files.readAllBytes(inputFile.toPath()), cover, output);
+        } catch (Exception e) {
+            throw new RuntimeException("No se puede leer el archivo");
+        }
+
+
+
     }
 }
