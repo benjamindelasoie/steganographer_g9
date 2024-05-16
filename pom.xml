@@ -29,13 +29,13 @@
             <version>2.7</version>
         </dependency>
 
-<!--        &lt;!&ndash; https://projectlombok.org/setup/maven&ndash;&gt;-->
-<!--        <dependency>-->
-<!--            <groupId>org.projectlombok</groupId>-->
-<!--            <artifactId>lombok</artifactId>-->
-<!--            <version>1.18.32</version>-->
-<!--            <scope>provided</scope>-->
-<!--        </dependency>-->
+        <!--        &lt;!&ndash; https://projectlombok.org/setup/maven&ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.projectlombok</groupId>-->
+        <!--            <artifactId>lombok</artifactId>-->
+        <!--            <version>1.18.32</version>-->
+        <!--            <scope>provided</scope>-->
+        <!--        </dependency>-->
 
 
         <!-- https://picocli.info/#_add_as_external_dependency -->
