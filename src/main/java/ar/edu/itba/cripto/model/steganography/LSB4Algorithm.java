@@ -162,7 +162,37 @@ public class LSB4Algorithm extends SteganographyAlgorithm {
     }
 
     @Override
-    public byte[] extractRawData(final File coverFile, final int length) throws IOException {
+    public byte[] extractRawData(final File coverFile) throws IOException {
+        BMPV3Image bmp = new BMPV3Image();
+        bmp.loadFromFile(coverFile.getPath());
+
+        byte[] imgData = bmp.getImageData();
+        int offset = bmp.getDataOffset();
+
+        byte[] extractedData = new byte[bmp.getHeight() * bmp.getWidth() * 3 / 2];
+
+        for (int i = 0; i < extractedData.length; i++) {
+            byte extractByte = 0;
+            for (int j = 0; j < 2; j++) {
+                byte imgByte = imgData[offset + i * 2 + j];
+
+                byte lsb4 = (byte) (imgByte & 0x0F);
+
+                if (j % 2 == 0) {
+                    extractByte |= (byte) (lsb4 << 4);
+                } else {
+                    extractByte |= (lsb4);
+                }
+            }
+
+            extractedData[i] = extractByte;
+        }
+
+        return extractedData;
+    }
+
+    @Override
+    public byte[] extractRawData(final byte[] data, final int from, final int to) {
         return new byte[0];
     }
 

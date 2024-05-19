@@ -1,6 +1,5 @@
 package ar.edu.itba.cripto;
 
-import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.EncryptingSteganographer;
 import ar.edu.itba.cripto.model.Steganographer;
 import ar.edu.itba.cripto.model.steganography.LSB4Algorithm;
@@ -52,15 +51,14 @@ public class EmbedCommand implements Callable<Integer> {
         File cover = new File("../bmp_images/bmp_24.bmp");
         File output = new File("../averga.bmp");
 
-        Steganographer steg = new Steganographer(new LSB4Algorithm());
+        EncryptingSteganographer steg = new EncryptingSteganographer(new LSB4Algorithm(),
+                "des",
+                "ecb",
+                "password");
 
         steg.embed(inputFile, cover, output);
 
-        try {
-            steg.extract(output);
-        } catch (Exception e) {
-            System.out.println("Problemitas: " + e.getMessage());
-        }
+        steg.extract(output);
 
     }
 
@@ -82,10 +80,8 @@ public class EmbedCommand implements Callable<Integer> {
         byte[] msgBytes = Files.readAllBytes(inputFile.toPath());
         try {
             return steganographer.embed(inputFile, coverImage, outputFile);
-        } catch (NotEnoughSpaceInImageException e) {
-            System.out.println("Error: not enough space in the cover for this message.\nMaximum msg length for this image: " +
-                    e.getMaxMessageLength());
-            return 1;
+        } catch (RuntimeException e) {
+            throw e;
         }
     }
 }

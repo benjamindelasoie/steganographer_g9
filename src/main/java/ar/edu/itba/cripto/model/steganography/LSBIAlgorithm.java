@@ -8,7 +8,6 @@ import java.io.IOException;
 
 // TODO: Implement
 public class LSBIAlgorithm extends SteganographyAlgorithm {
-
     @Override
     public int hideData(final byte[] data, final File cover, final File outputFile) throws IOException {
         return 0;
@@ -20,12 +19,17 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
     }
 
     @Override
-    public byte[] extractRawData(final File coverFile, final int length) throws IOException {
+    public byte[] extractRawData(final File coverFile) throws IOException {
+        return new byte[0];
+    }
+
+    @Override
+    public byte[] extractRawData(final byte[] data, final int from, final int to) {
         return new byte[0];
     }
 
     @Override
     boolean canHideData(final byte[] data, final BMPV3Image coverImage) {
-        return true;
+        return false;
     }
 }

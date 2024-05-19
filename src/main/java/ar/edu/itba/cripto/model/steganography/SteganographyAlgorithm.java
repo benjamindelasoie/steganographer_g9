@@ -30,7 +30,9 @@ public abstract class SteganographyAlgorithm {
 
     public abstract FileHandle extractData(File image) throws IOException;
 
-    public abstract byte[] extractRawData(File coverFile, int length) throws IOException;
+    public abstract byte[] extractRawData(File coverFile) throws IOException;
+
+    public abstract byte[] extractRawData(byte[] data, int from, int to);
 
     abstract boolean canHideData(final byte[] data, BMPV3Image coverImage);
 

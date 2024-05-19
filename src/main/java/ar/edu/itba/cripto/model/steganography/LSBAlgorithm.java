@@ -26,10 +26,6 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
         System.out.println("Byte array: " + Arrays.toString(msg));
         System.out.println("lenghts in bytes: " + msg.length);
         System.out.println("length in bits: " + msg.length * 8);
-        for (final byte b : msg) {
-            //String binaryString = String.format("%8s", Integer.toBinaryString(b)).replace(" ", "0");
-            //System.out.println(b + " = " + binaryString);
-        }
 
         byte[] imageData = bmp.getImageData();
         byte[] outputData = imageData.clone();
@@ -107,31 +103,50 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
     }
 
     @Override
-    public byte[] extractRawData(File coverFile, int length) throws IOException {
-        System.out.println("Extract raw data " + coverFile + " " + length);
+    public byte[] extractRawData(File coverFile) throws IOException {
+        System.out.println("Extract raw data " + coverFile);
         BMPV3Image img = new BMPV3Image();
         img.loadFromFile(coverFile.getPath());
 
 
         byte[] imageData = img.getImageData();
         int offset = img.getDataOffset();
-        byte[] extractedData = new byte[length];
+        byte[] extractedData = new byte[img.getHeight() * img.getWidth() * 3 / 8];
 
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < extractedData.length; i++) {
             byte extractByte = 0;
             for (int j = 0; j < 8; j++) {
                 byte imgByte = imageData[offset + i * 8 + j];
-                System.out.printf("current imgByte[%d] = %s\n", offset + i * 8 + j, Integer.toBinaryString(imgByte));
                 boolean lsb = (imgByte & 1) != 0;
-                System.out.println("lsb = " + (lsb ? "1" : "0"));
                 if (lsb) {
                     extractByte |= (byte) (1 << (7 - j));
                 } else {
                     extractByte &= (byte) ~(1 << (7 - j));
                 }
             }
-            System.out.println("extracted byte: " + extractByte);
-            System.out.println(Integer.toBinaryString(extractByte));
+            extractedData[i] = extractByte;
+        }
+
+        return extractedData;
+    }
+
+    public byte[] extractRawData(byte[] embeddedData, int from, int to) {
+        if (to <= from) {
+            throw new IllegalArgumentException("to <= from");
+        }
+
+        byte[] extractedData = new byte[(to - from) / 8];
+        for (int i = 0; i < extractedData.length; i++) {
+            byte extractByte = 0;
+            for (int j = 0; j < 8; j++) {
+                byte imgByte = embeddedData[from + i * 8 + j];
+                boolean lsb = (imgByte & 1) != 0;
+                if (lsb) {
+                    extractByte |= (byte) (1 << (7 - j));
+                } else {
+                    extractByte &= (byte) ~(1 << (7 - j));
+                }
+            }
             extractedData[i] = extractByte;
         }
 
