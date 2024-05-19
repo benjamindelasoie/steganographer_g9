@@ -8,6 +8,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.io.File;
+import java.nio.file.Files;
 import java.security.InvalidParameterException;
 import java.security.NoSuchAlgorithmException;
 
@@ -15,19 +16,15 @@ public class EncryptingSteganographer extends Steganographer {
     private final CipherHandle cipherHandle;
 
     @Override
-    public int embed(final byte[] data, final File cover, final File outputFile) throws Exception {
+    public int embed(final File inputFile, final File cover, final File outputFile) throws Exception {
         // TODO: Implement
-        byte[] cyphertext = cipherHandle.encrypt(data);
-        return super.embed(cyphertext, cover, outputFile);
+        byte[] cyphertext = cipherHandle.encrypt(Files.readAllBytes(inputFile.toPath()));
+        return this.stegAlgorithm.hideData(cyphertext, cover, outputFile);
     }
 
     @Override
-    public byte[] extract(File cover) throws Exception {
+    public void extract(File cover) throws Exception {
         // TODO: Implement
-        byte[] cyphertext = super.extract(cover);
-        byte[] plaintext = cipherHandle.decrypt(cyphertext);
-
-        return plaintext;
     }
 
     public EncryptingSteganographer(final SteganographyAlgorithm stegAlgorithm, String cipher, String mode, String password) {
@@ -53,8 +50,8 @@ public class EncryptingSteganographer extends Steganographer {
 
             switch (cipher) {
                 case "aes128":
-                    cipherName="AES";
-                    keyLength=128;
+                    cipherName = "AES";
+                    keyLength = 128;
                     break;
                 case "aes192":
                     cipherName = "AES";
@@ -67,8 +64,10 @@ public class EncryptingSteganographer extends Steganographer {
                 case "des":
                     cipherName = "DES";
                     keyLength = 56;
-                default: throw new InvalidParameterException("Invalid cipher: " + cipher);
-            };
+                default:
+                    throw new InvalidParameterException("Invalid cipher: " + cipher);
+            }
+            ;
 
             this.cipherMode = switch (mode) {
                 case "cfb" -> "CFB8";

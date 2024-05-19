@@ -1,7 +1,9 @@
 package ar.edu.itba.cripto.model;
 
 import org.apache.commons.io.EndianUtils;
+import org.apache.commons.io.FileUtils;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Iterator;
@@ -23,6 +25,18 @@ public class BMPV3Image implements Iterable<Byte> {
             this.imageData = data;
 
         }
+    }
+
+    public void saveToFile(String filePath) throws IOException {
+        FileUtils.writeByteArrayToFile(new File(filePath), imageData);
+    }
+
+    public int getHeight() {
+        return this.header.height;
+    }
+
+    public int getWidth() {
+        return this.header.width;
     }
 
     public int getDataOffset() {
@@ -60,9 +74,10 @@ public class BMPV3Image implements Iterable<Byte> {
 
     private record BMPV3HeaderInfo(int size, int dataOffset,
                                    int width, int height,
-                                   int bitsPerPixel, boolean isCompressed){}
+                                   int bitsPerPixel, boolean isCompressed) {
+    }
 
-    private BMPV3HeaderInfo parseHeader (byte[] dataBytes) {
+    private BMPV3HeaderInfo parseHeader(byte[] dataBytes) {
         int size = EndianUtils.readSwappedInteger(dataBytes, 2);
         int dataOffset = EndianUtils.readSwappedInteger(dataBytes, 10);
         int width = EndianUtils.readSwappedInteger(dataBytes, 18);

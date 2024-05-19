@@ -1,30 +1,17 @@
 package ar.edu.itba.cripto;
 
-import ar.edu.itba.cripto.model.BMPV3Image;
-import ar.edu.itba.cripto.model.CipherHandle;
+import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.EncryptingSteganographer;
-import ar.edu.itba.cripto.model.steganography.LSBAlgorithm;
 import ar.edu.itba.cripto.model.Steganographer;
+import ar.edu.itba.cripto.model.steganography.LSB4Algorithm;
 import ar.edu.itba.cripto.model.steganography.SteganographyAlgorithm;
-import org.apache.commons.io.EndianUtils;
-import org.w3c.dom.css.RGBColor;
-import picocli.CommandLine.*;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
-import java.nio.file.StandardOpenOption;
-import java.security.MessageDigest;
-import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 @Command(name = "-embed", sortOptions = false)
@@ -44,11 +31,11 @@ public class EmbedCommand implements Callable<Integer> {
             description = "Archivo bmp de salida")
     File outputFile;
 
-    @Option(names = "-steg", paramLabel = "STEG",required = false,
+    @Option(names = "-steg", paramLabel = "STEG", required = false,
             description = "Algoritmo de esteganografiado: <LSB | LSB4 | LSBI>")
     String stegName;
 
-    @Option(names = "-a", paramLabel = "CIPHER",defaultValue = "aes128",
+    @Option(names = "-a", paramLabel = "CIPHER", defaultValue = "aes128",
             description = "Algoritmo de encriptado: <aes128 | aes192 | aes256 | des>")
     String cipherName;
 
@@ -56,8 +43,26 @@ public class EmbedCommand implements Callable<Integer> {
             description = "Modo de cifrado de bloque: <ecb | cfb | ofb | cbc>")
     String cipherModeName;
 
-    @Option(names = "-pass", paramLabel = "PASSWORD",description = "Password de encripción")
+    @Option(names = "-pass", paramLabel = "PASSWORD", description = "Password de encripción")
     String password;
+
+    public static void main(String[] args) throws Exception {
+
+        File inputFile = new File("../archivo.txt");
+        File cover = new File("../bmp_images/bmp_24.bmp");
+        File output = new File("../averga.bmp");
+
+        Steganographer steg = new Steganographer(new LSB4Algorithm());
+
+        //steg.embed(inputFile, cover, output);
+        //
+        //try {
+        //    steg.extract(output);
+        //} catch (Exception e) {
+        //    System.out.println("Problemitas: " + e.getMessage());
+        //}
+
+    }
 
     @Override
     public Integer call() throws Exception {
@@ -75,23 +80,12 @@ public class EmbedCommand implements Callable<Integer> {
 
         // Do call
         byte[] msgBytes = Files.readAllBytes(inputFile.toPath());
-        return steganographer.embed(msgBytes, coverImage, outputFile);
-    }
-
-    public static void main(String[] args) throws IOException {
-
-        File inputFile = new File("../archivo.txt");
-        File cover = new File("../bmp_images/bmp_24.bmp");
-        File output = new File("../averga.bmp");
-
-        Steganographer steg = new Steganographer(new LSBAlgorithm());
         try {
-            steg.embed(Files.readAllBytes(inputFile.toPath()), cover, output);
-        } catch (Exception e) {
-            throw new RuntimeException("No se puede leer el archivo");
+            return steganographer.embed(inputFile, coverImage, outputFile);
+        } catch (NotEnoughSpaceInImageException e) {
+            System.out.println("Error: not enough space in the cover for this message.\nMaximum msg length for this image: " +
+                    e.getMaxMessageLength());
+            return 1;
         }
-
-
-
     }
 }
