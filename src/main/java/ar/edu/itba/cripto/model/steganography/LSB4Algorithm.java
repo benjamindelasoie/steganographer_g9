@@ -3,6 +3,7 @@ package ar.edu.itba.cripto.model.steganography;
 import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.BMPV3Image;
 import ar.edu.itba.cripto.model.FileHandle;
+import org.apache.commons.io.EndianUtils;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -42,22 +43,23 @@ public class LSB4Algorithm extends SteganographyAlgorithm {
                 imageByte &= (byte) 0xF0;
                 System.out.println("Cleaned imageByte = " + Integer.toBinaryString(imageByte));
 
-
+                byte mask;
                 if (j % 2 == 0) {
-                    imageByte |= (byte) (msg[i] >> 4);
+                    mask = (byte) (msg[i] >> 4);
                 } else {
-                    imageByte |= (byte) (msg[i] & 0x0F);
+                    mask = (byte) (msg[i] & 0x0F);
                 }
+                System.out.println("mask = " + Integer.toBinaryString(mask));
 
-
+                imageByte |= mask;
+                System.out.println("resulting imageByte = " + Integer.toBinaryString(imageByte));
                 outputData[offset + i * 2 + j] = imageByte;
             }
-
         }
 
-        System.out.println("outputData: " + Arrays.toString(Arrays.copyOfRange(outputData, 54, 54 + msg.length * 8)));
+        System.out.println("outputData: " + Arrays.toString(Arrays.copyOfRange(outputData, 54, 54 + msg.length * 2)));
 
-        printLSB(Arrays.copyOfRange(outputData, 54, 54 + msg.length * 8));
+        printLSB4(Arrays.copyOfRange(outputData, 54, 54 + msg.length * 2));
 
         System.out.println("Son iguales?: " + (Arrays.equals(bmp.getImageData(), outputData) ? "si" : "no"));
 
@@ -68,8 +70,95 @@ public class LSB4Algorithm extends SteganographyAlgorithm {
     }
 
     @Override
-    public FileHandle extractData(final File image) throws IOException {
-        return null;
+    public FileHandle extractData(final File coverFile) throws IOException {
+        System.out.println("Extract data " + coverFile);
+        BMPV3Image img = new BMPV3Image();
+        img.loadFromFile(coverFile.getPath());
+
+
+        byte[] imageData = img.getImageData();
+        int offset = img.getDataOffset();
+        int messageLength = extractLength(imageData, offset);
+        System.out.println("messageLength = " + messageLength);
+        byte[] extractedData = new byte[messageLength];
+
+        for (int i = 0; i < messageLength; i++) {
+            byte extractByte = 0;
+            for (int j = 0; j < 2; j++) {
+                byte imgByte = imageData[offset + (4 + i) * 2 + j];
+
+                byte lsb4 = (byte) (imgByte & 0x0F);
+
+                if (j % 2 == 0) {
+                    extractByte |= (byte) (lsb4 << 4);
+                } else {
+                    extractByte |= (lsb4);
+                }
+            }
+
+            extractedData[i] = extractByte;
+        }
+
+        System.out.println("extractedData = " + Arrays.toString(extractedData));
+
+        String extension = extractExtension(54 + (4 + messageLength) * 2, imageData);
+        System.out.println("Extension : " + extension);
+        return new FileHandle(messageLength, extractedData, extension);
+
+    }
+
+    private String extractExtension(final int offset, final byte[] imgData) {
+        System.out.printf("extract extension: offset %d\n", offset);
+        byte[] extensionData = new byte[16];
+        boolean foundNull = false;
+
+        for (int i = 0; i < extensionData.length && !foundNull; i++) {
+            byte extractByte = 0;
+            for (int j = 0; j < 2; j++) {
+                byte imgByte = imgData[offset + i * 2 + j];
+
+                byte lsb4 = (byte) (imgByte & 0x0F);
+
+                if (j % 2 == 0) {
+                    extractByte |= (byte) (lsb4 << 4);
+                } else {
+                    extractByte |= (lsb4);
+                }
+            }
+
+            if (extractByte == '\0') {
+                foundNull = true;
+            } else {
+                extensionData[i] = extractByte;
+            }
+        }
+
+        System.out.println("extension data: " + Arrays.toString(extensionData));
+        return byteArrayToString(extensionData);
+    }
+
+    private int extractLength(final byte[] imageData, final int offset) {
+        byte[] lengthData = new byte[4];
+
+        // La consigna dice que los primeros 4 bytes son la longitud del mensaje en little Endian.
+        for (int i = 0; i < 4; i++) {
+            byte extractByte = 0;
+            for (int j = 0; j < 2; j++) {
+                byte imgByte = imageData[offset + i * 2 + j];
+
+                byte lsb4 = (byte) (imgByte & 0x0F);
+
+                if (j % 2 == 0) {
+                    extractByte |= (byte) (lsb4 << 4);
+                } else {
+                    extractByte |= (lsb4);
+                }
+            }
+
+            lengthData[i] = extractByte;
+        }
+
+        return EndianUtils.readSwappedInteger(lengthData, 0);
     }
 
     @Override
@@ -80,5 +169,17 @@ public class LSB4Algorithm extends SteganographyAlgorithm {
     @Override
     boolean canHideData(final byte[] data, final BMPV3Image coverImage) {
         return data.length * (8 / BITS_HIDDEN_PER_BYTE) <= coverImage.getHeight() * coverImage.getWidth() * 3;
+    }
+
+    protected static void printLSB4(byte[] arr) {
+        StringBuffer sb = new StringBuffer("lsbs: ");
+        for (int i = 0; i < arr.length; i++) {
+            if (i != 0 && i % 2 == 0) {
+                sb.append(" ");
+            }
+            byte lsb4 = (byte) (arr[i] & 0x0F);
+            sb.append(String.format("%4s", Integer.toBinaryString(lsb4)).replace(' ', '0'));
+        }
+        System.out.println(sb);
     }
 }

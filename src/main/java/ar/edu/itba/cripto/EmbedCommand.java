@@ -54,13 +54,13 @@ public class EmbedCommand implements Callable<Integer> {
 
         Steganographer steg = new Steganographer(new LSB4Algorithm());
 
-        //steg.embed(inputFile, cover, output);
-        //
-        //try {
-        //    steg.extract(output);
-        //} catch (Exception e) {
-        //    System.out.println("Problemitas: " + e.getMessage());
-        //}
+        steg.embed(inputFile, cover, output);
+
+        try {
+            steg.extract(output);
+        } catch (Exception e) {
+            System.out.println("Problemitas: " + e.getMessage());
+        }
 
     }
 
