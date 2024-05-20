@@ -55,7 +55,7 @@ public class EmbedCommand implements Callable<Integer> {
 
         EncryptingSteganographer encrypter = new EncryptingSteganographer(new LSB4Algorithm(),
             "aes256",
-            "ecb",
+            "ofb",
             "password");
 
         try {

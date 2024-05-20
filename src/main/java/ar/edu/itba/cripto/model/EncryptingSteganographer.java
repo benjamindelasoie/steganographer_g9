@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
@@ -72,9 +73,6 @@ public class EncryptingSteganographer extends Steganographer {
         System.out.println("cipherHandle = " + cipherHandle);
     }
 
-    private record KeyAndIv(byte[] key, byte[] iv) {
-    }
-
     private class CipherHandle {
         private final static String DEFAULT_PADDING = "PKCS5Padding";
         public static final String KEY_FACTORY_ALGORITHM = "PBKDF2WithHmacSHA256";
@@ -84,6 +82,7 @@ public class EncryptingSteganographer extends Steganographer {
         private final String cipherName;
         private final String cipherMode;
         private final int keyLength;
+        private boolean requiresIv = true;
 
         public CipherHandle(String cipher, String mode, String password) throws Exception {
             this.password = password;
@@ -109,15 +108,23 @@ public class EncryptingSteganographer extends Steganographer {
                     throw new InvalidParameterException("Invalid cipher: " + cipher);
                 }
             }
-            ;
 
-            this.cipherMode = switch (mode) {
-                case "cfb" -> "CFB8";
-                case "ofb" -> "OFB";
-                case "cbc" -> "CBC";
-                case "ecb" -> "ECB";
+            switch (mode) {
+                case "cfb" -> {
+                    this.cipherMode = "CFB8";
+                }
+                case "ofb" -> {
+                    this.cipherMode = "OFB";
+                }
+                case "cbc" -> {
+                    this.cipherMode = "CBC";
+                }
+                case "ecb" -> {
+                    this.cipherMode = "ECB";
+                    this.requiresIv = false;
+                }
                 default -> throw new InvalidParameterException("Invalid mode: " + mode);
-            };
+            }
 
             String transformation = cipherName + "/" + cipherMode + "/" + DEFAULT_PADDING;
             this.cipher = Cipher.getInstance(transformation);
@@ -125,32 +132,56 @@ public class EncryptingSteganographer extends Steganographer {
 
         public byte[] encrypt(final byte[] data) throws Exception {
 
-            SecretKeySpec secretKey = generateSecretKey(password, cipherName, cipherMode);
-            System.out.println(secretKey.getAlgorithm() + " " + Arrays.toString(secretKey.getEncoded()));
-
-
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            KeyAndIv keyAndIv = generateSecretKey(password, cipherName, cipherMode);
+            System.out.println("keyAndIv = " + keyAndIv);
+            System.out.println(String.format("key = %d bytes | iv = %d bytes", keyAndIv.key.length, keyAndIv.iv.length));
+            if (requiresIv) {
+                cipher.init(Cipher.ENCRYPT_MODE,
+                    new SecretKeySpec(keyAndIv.key, cipherName),
+                    new IvParameterSpec(keyAndIv.iv()));
+            } else {
+                System.out.println("key = " + Arrays.toString(keyAndIv.key));
+                SecretKeySpec keySpec = new SecretKeySpec(keyAndIv.key, cipherName);
+                System.out.println("keySpec = " + Arrays.toString(keySpec.getEncoded()) + "  " + keySpec.getAlgorithm());
+                cipher.init(Cipher.ENCRYPT_MODE, keySpec);
+            }
 
             byte[] cyphertext = cipher.doFinal(data);
 
             return cyphertext;
         }
 
-        private SecretKeySpec generateSecretKey(String password, String algorithm, String mode) throws Exception {
+        private KeyAndIv generateSecretKey(String password, String algorithm, String mode) throws Exception {
             System.out.println("CipherHandle.generateSecretKey");
             System.out.println("password = " + password + ", algorithm = " + algorithm + ", mode = " + mode);
 
             SecretKeyFactory skf = SecretKeyFactory.getInstance(KEY_FACTORY_ALGORITHM);
-            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, 1, keyLength);
+            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, 1,
+                keyLength + cipher.getBlockSize() * (requiresIv ? 1 : 0));
             SecretKey secretKey = skf.generateSecret(spec);
-            SecretKeySpec key = new SecretKeySpec(secretKey.getEncoded(), algorithm);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getEncoded(), algorithm);
+            byte[] bytes = secretKeySpec.getEncoded();
+            System.out.println("bytes.length = " + bytes.length);
 
-            return key;
+            byte[] key = Arrays.copyOfRange(bytes, 0, keyLength / 8);
+            byte[] iv = new byte[0];
+            System.out.println("cipher.getBlockSize() = " + cipher.getBlockSize());
+            if (requiresIv) {
+                iv = Arrays.copyOfRange(bytes, keyLength / 8, (keyLength / 8 + cipher.getBlockSize()));
+            }
+            return new KeyAndIv(key, iv);
         }
 
         public byte[] decrypt(final byte[] data) throws Exception {
-            SecretKeySpec secretKey = generateSecretKey(password, cipherName, this.cipherMode);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            KeyAndIv keyAndIv = generateSecretKey(password, cipherName, this.cipherMode);
+            if (cipherMode.equals("ECB")) {
+                cipher.init(Cipher.DECRYPT_MODE,
+                    new SecretKeySpec(keyAndIv.key(), cipherName));
+            } else {
+                cipher.init(Cipher.DECRYPT_MODE,
+                    new SecretKeySpec(keyAndIv.key(), cipherName),
+                    new IvParameterSpec(keyAndIv.iv()));
+            }
             byte[] plaintext = cipher.doFinal(data);
             return plaintext;
         }
@@ -165,5 +196,10 @@ public class EncryptingSteganographer extends Steganographer {
                 ", keyLength=" + keyLength +
                 '}';
         }
+
+        protected record KeyAndIv(byte[] key, byte[] iv) {
+        }
+
+        ;
     }
 }

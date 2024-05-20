@@ -54,7 +54,6 @@ public class Steganographer {
         String extension = FilenameUtils.getExtension(String.valueOf(inputFile));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        //TODO: Definir si aca es little o big endian.
 
         ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
         buffer.putInt(messageLength);
