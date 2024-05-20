@@ -3,7 +3,8 @@ package ar.edu.itba.cripto.model;
 import ar.edu.itba.cripto.model.steganography.SteganographyAlgorithm;
 import org.apache.commons.io.EndianUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -12,54 +13,51 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.util.Arrays;
 
 public class EncryptingSteganographer extends Steganographer {
     private final CipherHandle cipherHandle;
+    public static final Logger logger = LoggerFactory.getLogger(EncryptingSteganographer.class);
 
     @Override
-    public int embed(final File inputFile, final File cover, final File outputFile) throws Exception {
-        System.out.println("Steganographer.embed " + inputFile);
+    public void embed(final File inputFile, final File cover, final File outputFile) throws Exception {
+        System.out.println("Embedding " + inputFile + cover + outputFile);
+        // Construimos el mensaje a esconder con el formato pedido
+        byte[] fileInfo = buildByteArray(inputFile);
 
-        byte[] data = Files.readAllBytes(inputFile.toPath());
-        int messageLength = data.length;
-        String extension = FilenameUtils.getExtension(String.valueOf(inputFile));
+        // Encripción
+        byte[] cyphertext = this.cipherHandle.encrypt(fileInfo);
 
+        // Construimos el array del texto cifrado.
+        byte[] cypherMessage = buildCypherByteArray(cyphertext);
+
+        this.stegAlgorithm.hideData(cypherMessage, cover, outputFile);
+    }
+
+    static byte[] buildCypherByteArray(byte[] cyphertext) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        EndianUtils.writeSwappedInteger(baos, messageLength);
-        baos.write(data);
-        baos.write(".".getBytes(StandardCharsets.UTF_8));
-        baos.write(extension.getBytes(StandardCharsets.UTF_8));
-        baos.write('\0');
+        EndianUtils.writeSwappedInteger(baos, cyphertext.length);
+        baos.write(cyphertext);
 
-        byte[] cyphertext = this.cipherHandle.encrypt(baos.toByteArray());
-        int cypherSize = cyphertext.length;
-
-        ByteArrayOutputStream cypher = new ByteArrayOutputStream();
-        EndianUtils.writeSwappedInteger(cypher, cypherSize);
-        cypher.write(cyphertext);
-
-        return this.stegAlgorithm.hideData(cypher.toByteArray(), cover, outputFile);
+        return baos.toByteArray();
     }
 
     @Override
     public void extract(File cover) throws Exception {
         byte[] rawData = this.stegAlgorithm.extractRawData(cover);
+
+        // Descompongo el mensaje cifrado: tamaño | cifrado
         int cypherLength = EndianUtils.readSwappedInteger(rawData, 0);
         byte[] plaintext = cipherHandle.decrypt(Arrays.copyOfRange(rawData, 4, 4 + cypherLength));
-        System.out.println("decryption: " + Arrays.toString(plaintext));
 
+        // Descompongo el mensaje plano: tamaño | datos | extensión
         int messageLength = readLength(plaintext);
-        System.out.println("messageLength = " + messageLength);
         byte[] fileData = readFileData(plaintext, 4, 4 + messageLength);
-        System.out.println("fileData = " + Arrays.toString(fileData));
         String extension = readExtension(plaintext, 4 + messageLength);
-        System.out.println("extension = " + extension);
 
-        FileUtils.writeByteArrayToFile(new File("../output" + extension), fileData);
+        FileUtils.writeByteArrayToFile(new File("../" + DEFAULT_OUTPUT_NAME + extension), fileData);
     }
 
     public EncryptingSteganographer(final SteganographyAlgorithm stegAlgorithm, String cipher, String mode, String password) throws Exception {
@@ -73,7 +71,7 @@ public class EncryptingSteganographer extends Steganographer {
 
     private class CipherHandle {
         private final static String DEFAULT_PADDING = "PKCS5Padding";
-        private static final byte[] FIXED_SALT = "FIXED_SALTA".getBytes();
+        private static final byte[] FIXED_SALT = "FIXED_SALT".getBytes();
         private final String password;
         private final Cipher cipher;
         private final String cipherName;
@@ -102,7 +100,6 @@ public class EncryptingSteganographer extends Steganographer {
                     keyLength = 64;
                 }
                 default -> {
-                    System.out.println("Default switch");
                     throw new InvalidParameterException("Invalid cipher: " + cipher);
                 }
             }
@@ -117,26 +114,8 @@ public class EncryptingSteganographer extends Steganographer {
             };
 
             String transformation = cipherName + "/" + cipherMode + "/" + DEFAULT_PADDING;
-            System.out.println("Transformation = " + transformation);
             this.cipher = Cipher.getInstance(transformation);
             this.secretKey = generateSecretKey(password, this.cipher.getAlgorithm());
-            System.out.println(this);
-        }
-
-        public Cipher getCipher() {
-            return cipher;
-        }
-
-        public String getCipherName() {
-            return cipherName;
-        }
-
-        public String getCipherMode() {
-            return cipherMode;
-        }
-
-        public int getKeyLength() {
-            return keyLength;
         }
 
         public byte[] encrypt(final byte[] data) throws Exception {

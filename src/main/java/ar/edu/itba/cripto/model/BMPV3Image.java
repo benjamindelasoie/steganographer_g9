@@ -1,34 +1,26 @@
 package ar.edu.itba.cripto.model;
 
 import org.apache.commons.io.EndianUtils;
-import org.apache.commons.io.FileUtils;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Iterator;
 
-public class BMPV3Image implements Iterable<Byte> {
+public class BMPV3Image {
     private BMPV3HeaderInfo header;
     private byte[] imageData;
 
-    public void loadFromFile(String filePath) throws IOException {
+    public void loadFromFile(final String filePath) throws IOException {
         try (FileInputStream fis = new FileInputStream(filePath)) {
             byte[] data = fis.readAllBytes();
-            BMPV3HeaderInfo header = parseHeader(data);
+            BMPV3HeaderInfo parseHeader = parseHeader(data);
 
-            if (header.isCompressed) {
+            if (parseHeader.isCompressed) {
                 throw new IOException("BMP shouldn't be compressed");
             }
 
-            this.header = header;
+            this.header = parseHeader;
             this.imageData = data;
-
         }
-    }
-
-    public void saveToFile(String filePath) throws IOException {
-        FileUtils.writeByteArrayToFile(new File(filePath), imageData);
     }
 
     public int getHeight() {
@@ -43,25 +35,12 @@ public class BMPV3Image implements Iterable<Byte> {
         return header.dataOffset;
     }
 
-    public byte[] getImageData() {
-        return imageData;
+    public int getSize() {
+        return header.width * header.height * header.bitsPerPixel / 8;
     }
 
-    @Override
-    public Iterator<Byte> iterator() {
-        return new Iterator<>() {
-            final int i = getDataOffset();
-
-            @Override
-            public boolean hasNext() {
-                return i < imageData.length;
-            }
-
-            @Override
-            public Byte next() {
-                return imageData[i];
-            }
-        };
+    public byte[] getImageData() {
+        return imageData;
     }
 
     @Override

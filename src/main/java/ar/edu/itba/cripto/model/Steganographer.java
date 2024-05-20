@@ -4,6 +4,8 @@ import ar.edu.itba.cripto.model.steganography.SteganographyAlgorithm;
 import org.apache.commons.io.EndianUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -14,20 +16,39 @@ import java.util.Arrays;
 
 public class Steganographer {
     protected final SteganographyAlgorithm stegAlgorithm;
+    public static final String DEFAULT_OUTPUT_NAME = "../extraction";
+    public static final int LENGTH_SIZE = 4;
+
+    Logger logger = LoggerFactory.getLogger(Steganographer.class);
 
     public Steganographer(final SteganographyAlgorithm stegAlgorithm) {
         this.stegAlgorithm = stegAlgorithm;
     }
 
+    public void embed(File inputFile, File cover, File outputFile) throws Exception {
+        logger.info("Embed call for {} on cover {} out to {}", inputFile, cover, outputFile);
 
-    public int embedRaw(File inputFile, File cover, File outputFile) throws Exception {
-        byte[] inputData = Files.readAllBytes(inputFile.toPath());
-        return this.stegAlgorithm.hideData(inputData, cover, outputFile);
+        // Construyo el mensaje tamaño + data + extension
+        byte[] fileInfo = buildByteArray(inputFile);
+
+        // Aplico el esteganografiado a través del algoritmo
+        this.stegAlgorithm.hideData(fileInfo, cover, outputFile);
     }
 
-    public int embed(File inputFile, File cover, File outputFile) throws Exception {
-        System.out.println("Steganographer.embed " + inputFile);
+    public void extract(File file) throws Exception {
+        // Extraigo los bytes usando el algoritmo
+        byte[] rawData = this.stegAlgorithm.extractData(file);
 
+        // Leo los componentes del mensaje
+        int messageLength = readLength(rawData);
+        byte[] fileData = readFileData(rawData, LENGTH_SIZE, LENGTH_SIZE + messageLength);
+        String extension = readExtension(rawData, LENGTH_SIZE + messageLength);
+
+        // Genero el archivo de salida en base a lo extraído
+        FileUtils.writeByteArrayToFile(new File(DEFAULT_OUTPUT_NAME + extension), fileData);
+    }
+
+    static byte[] buildByteArray(final File inputFile) throws IOException {
         byte[] data = Files.readAllBytes(inputFile.toPath());
         int messageLength = data.length;
         String extension = FilenameUtils.getExtension(String.valueOf(inputFile));
@@ -39,40 +60,7 @@ public class Steganographer {
         baos.write(extension.getBytes(StandardCharsets.UTF_8));
         baos.write('\0');
 
-        return this.stegAlgorithm.hideData(baos.toByteArray(), cover, outputFile);
-    }
-
-    // TODO: Implement.
-    public void extract(File file) throws Exception {
-        byte[] rawData = this.stegAlgorithm.extractRawData(file);
-        int messageLength = readLength(rawData);
-        byte[] fileData = readFileData(rawData, 4, 4 + messageLength);
-        String extension = readExtension(rawData, 4 + messageLength);
-        System.out.printf("Extracted %d bytes with extension %s", messageLength, extension);
-
-        FileUtils.writeByteArrayToFile(new File("../output" + extension), fileData);
-    }
-
-    public void extract(byte[] data) throws Exception {
-        byte[] rawData = this.stegAlgorithm.extractRawData(data, 54, data.length);
-        int messageLength = readLength(rawData);
-        byte[] fileData = readFileData(rawData, 4, 4 + messageLength);
-        String extension = readExtension(rawData, 4 + messageLength);
-        System.out.printf("Extracted %d bytes with extension %s", messageLength, extension);
-
-        FileUtils.writeByteArrayToFile(new File("../output" + extension), fileData);
-    }
-
-    public void extract(byte[] data, int from, int to) throws IOException {
-        byte[] rawData = this.stegAlgorithm.extractRawData(data, from, to);
-        int messageLength = readLength(rawData);
-        System.out.println("messageLength = " + messageLength);
-        byte[] fileData = readFileData(rawData, 4, 4 + messageLength);
-        System.out.println("fileData = " + Arrays.toString(fileData));
-        String extension = readExtension(rawData, 4 + messageLength);
-        System.out.println("extension = " + extension);
-
-        FileUtils.writeByteArrayToFile(new File("../output" + extension), fileData);
+        return baos.toByteArray();
     }
 
     String readExtension(final byte[] rawData, final int offset) {
@@ -86,12 +74,6 @@ public class Steganographer {
 
     byte[] readFileData(final byte[] rawData, final int from, final int to) {
         return Arrays.copyOfRange(rawData, from, to);
-    }
-
-    public void extractRawData(File file, int length) throws IOException {
-        byte[] rawData = stegAlgorithm.extractRawData(file);
-        System.out.println("rawData = " + Arrays.toString(rawData));
-        FileUtils.writeByteArrayToFile(new File("../salidita.txt"), rawData);
     }
 
     int readLength(final byte[] imageData) {

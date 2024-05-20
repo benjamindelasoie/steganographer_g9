@@ -1,7 +1,6 @@
 package ar.edu.itba.cripto.model.steganography;
 
 import ar.edu.itba.cripto.model.BMPV3Image;
-import ar.edu.itba.cripto.model.FileHandle;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,8 +13,8 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
     }
 
     @Override
-    public FileHandle extractData(final File image) throws IOException {
-        return null;
+    public byte[] extractData(final File image) throws IOException {
+        return new byte[0];
     }
 
     @Override
