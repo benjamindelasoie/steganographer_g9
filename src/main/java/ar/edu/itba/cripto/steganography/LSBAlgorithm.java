@@ -1,4 +1,4 @@
-package ar.edu.itba.cripto.model.steganography;
+package ar.edu.itba.cripto.steganography;
 
 import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.BMPV3Image;
@@ -21,7 +21,7 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
     public LSBAlgorithm() {
     }
 
-    public int hideData(final byte[] msg, File cover, File outputFile) throws IOException {
+    public void hideData(final byte[] msg, File cover, File outputFile) throws IOException {
         BMPV3Image bmp = new BMPV3Image();
         bmp.loadFromFile(cover.getPath());
 
@@ -55,7 +55,6 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
         }
 
         FileUtils.writeByteArrayToFile(outputFile, outputData);
-        return 0;
     }
 
     @Override
@@ -76,34 +75,6 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
                 byte lsbn = (byte) (imgByte & (mask));
 
                 extractByte |= (byte) (lsbn << (8 - (j + 1) * significantBits));
-            }
-            extractedData[i] = extractByte;
-        }
-
-        return extractedData;
-    }
-
-    @Override
-    public byte[] extractRawData(final File coverFile) throws IOException {
-        return new byte[0];
-    }
-
-    public byte[] extractRawData(byte[] embeddedData, int from, int to) {
-        if (to <= from) {
-            throw new IllegalArgumentException("to <= from");
-        }
-
-        byte[] extractedData = new byte[(to - from) / 8];
-        for (int i = 0; i < extractedData.length; i++) {
-            byte extractByte = 0;
-            for (int j = 0; j < 8; j++) {
-                byte imgByte = embeddedData[from + i * 8 + j];
-                boolean lsb = (imgByte & 1) != 0;
-                if (lsb) {
-                    extractByte |= (byte) (1 << (7 - j));
-                } else {
-                    extractByte &= (byte) ~(1 << (7 - j));
-                }
             }
             extractedData[i] = extractByte;
         }

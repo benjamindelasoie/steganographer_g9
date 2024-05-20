@@ -1,7 +1,6 @@
 package ar.edu.itba.cripto.model;
 
-import ar.edu.itba.cripto.model.steganography.SteganographyAlgorithm;
-import org.apache.commons.io.EndianUtils;
+import ar.edu.itba.cripto.steganography.SteganographyAlgorithm;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -10,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
@@ -35,7 +35,7 @@ public class Steganographer {
         this.stegAlgorithm.hideData(fileInfo, cover, outputFile);
     }
 
-    public void extract(File file) throws Exception {
+    public void extract(File file, String outputFile) throws Exception {
         // Extraigo los bytes usando el algoritmo
         byte[] rawData = this.stegAlgorithm.extractData(file);
 
@@ -45,7 +45,7 @@ public class Steganographer {
         String extension = readExtension(rawData, LENGTH_SIZE + messageLength);
 
         // Genero el archivo de salida en base a lo extraído
-        FileUtils.writeByteArrayToFile(new File(DEFAULT_OUTPUT_NAME + extension), fileData);
+        FileUtils.writeByteArrayToFile(new File("../" + outputFile + extension), fileData);
     }
 
     static byte[] buildByteArray(final File inputFile) throws IOException {
@@ -54,7 +54,14 @@ public class Steganographer {
         String extension = FilenameUtils.getExtension(String.valueOf(inputFile));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        EndianUtils.writeSwappedInteger(baos, messageLength);
+        //TODO: Definir si aca es little o big endian.
+
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        buffer.putInt(messageLength);
+        buffer.rewind();
+        byte[] lengthBytes = buffer.array();
+
+        baos.write(lengthBytes);
         baos.write(data);
         baos.write(".".getBytes(StandardCharsets.UTF_8));
         baos.write(extension.getBytes(StandardCharsets.UTF_8));
@@ -77,6 +84,13 @@ public class Steganographer {
     }
 
     int readLength(final byte[] imageData) {
-        return EndianUtils.readSwappedInteger(imageData, 0);
+        byte[] lengthBytes = Arrays.copyOfRange(imageData, 0, LENGTH_SIZE);
+
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        buffer.put(lengthBytes).rewind();
+        int value = buffer.getInt();
+
+        System.out.println("length = " + value);
+        return value;
     }
 }

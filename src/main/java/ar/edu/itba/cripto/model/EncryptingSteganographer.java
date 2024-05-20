@@ -1,16 +1,16 @@
 package ar.edu.itba.cripto.model;
 
-import ar.edu.itba.cripto.model.steganography.SteganographyAlgorithm;
+import ar.edu.itba.cripto.steganography.SteganographyAlgorithm;
 import org.apache.commons.io.EndianUtils;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -23,11 +23,10 @@ public class EncryptingSteganographer extends Steganographer {
 
     @Override
     public void embed(final File inputFile, final File cover, final File outputFile) throws Exception {
-        System.out.println("Embedding " + inputFile + cover + outputFile);
         // Construimos el mensaje a esconder con el formato pedido
         byte[] fileInfo = buildByteArray(inputFile);
 
-        // Encripción
+        // Encriptado
         byte[] cyphertext = this.cipherHandle.encrypt(fileInfo);
 
         // Construimos el array del texto cifrado.
@@ -45,39 +44,46 @@ public class EncryptingSteganographer extends Steganographer {
     }
 
     @Override
-    public void extract(File cover) throws Exception {
-        byte[] rawData = this.stegAlgorithm.extractRawData(cover);
+    public void extract(File cover, String outputFile) throws Exception {
+        System.out.println("EncryptingSteganographer.extract");
+        System.out.println("cover = " + cover + ", outputFile = " + outputFile);
+
+        byte[] coverData = this.stegAlgorithm.extractData(cover);
 
         // Descompongo el mensaje cifrado: tamaño | cifrado
-        int cypherLength = EndianUtils.readSwappedInteger(rawData, 0);
-        byte[] plaintext = cipherHandle.decrypt(Arrays.copyOfRange(rawData, 4, 4 + cypherLength));
+        int cypherLength = EndianUtils.readSwappedInteger(coverData, 0);
+        System.out.println("cypherLength = " + cypherLength);
+        byte[] plaintext = cipherHandle.decrypt(Arrays.copyOfRange(coverData, LENGTH_SIZE, LENGTH_SIZE + cypherLength));
 
         // Descompongo el mensaje plano: tamaño | datos | extensión
         int messageLength = readLength(plaintext);
-        byte[] fileData = readFileData(plaintext, 4, 4 + messageLength);
+        System.out.println("messageLength = " + messageLength);
+        byte[] fileData = readFileData(plaintext, LENGTH_SIZE, LENGTH_SIZE + messageLength);
         String extension = readExtension(plaintext, 4 + messageLength);
+        System.out.println("extension = " + extension);
 
-        FileUtils.writeByteArrayToFile(new File("../" + DEFAULT_OUTPUT_NAME + extension), fileData);
+        System.out.println("Escribiendo resultado en: " + outputFile + extension);
+        FileUtils.writeByteArrayToFile(new File(outputFile + extension), fileData);
     }
 
     public EncryptingSteganographer(final SteganographyAlgorithm stegAlgorithm, String cipher, String mode, String password) throws Exception {
         super(stegAlgorithm);
-        try {
-            this.cipherHandle = new CipherHandle(cipher, mode, password);
-        } catch (Exception e) {
-            throw e;
-        }
+        this.cipherHandle = new CipherHandle(cipher, mode, password);
+        System.out.println("cipherHandle = " + cipherHandle);
+    }
+
+    private record KeyAndIv(byte[] key, byte[] iv) {
     }
 
     private class CipherHandle {
         private final static String DEFAULT_PADDING = "PKCS5Padding";
+        public static final String KEY_FACTORY_ALGORITHM = "PBKDF2WithHmacSHA256";
         private static final byte[] FIXED_SALT = "FIXED_SALT".getBytes();
         private final String password;
         private final Cipher cipher;
         private final String cipherName;
         private final String cipherMode;
         private final int keyLength;
-        private SecretKey secretKey;
 
         public CipherHandle(String cipher, String mode, String password) throws Exception {
             this.password = password;
@@ -115,30 +121,36 @@ public class EncryptingSteganographer extends Steganographer {
 
             String transformation = cipherName + "/" + cipherMode + "/" + DEFAULT_PADDING;
             this.cipher = Cipher.getInstance(transformation);
-            this.secretKey = generateSecretKey(password, this.cipher.getAlgorithm());
         }
 
         public byte[] encrypt(final byte[] data) throws Exception {
-            SecretKey secretKey = generateSecretKey(password, this.cipher.getAlgorithm());
-            cipher.init(Cipher.ENCRYPT_MODE, this.secretKey);
+
+            SecretKeySpec secretKey = generateSecretKey(password, cipherName, cipherMode);
+            System.out.println(secretKey.getAlgorithm() + " " + Arrays.toString(secretKey.getEncoded()));
+
+
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
             byte[] cyphertext = cipher.doFinal(data);
+
             return cyphertext;
         }
 
-        private SecretKey generateSecretKey(String password, String algorithm) throws Exception {
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        private SecretKeySpec generateSecretKey(String password, String algorithm, String mode) throws Exception {
+            System.out.println("CipherHandle.generateSecretKey");
+            System.out.println("password = " + password + ", algorithm = " + algorithm + ", mode = " + mode);
 
-            PBEKeySpec keySpec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, 1, keyLength);
+            SecretKeyFactory skf = SecretKeyFactory.getInstance(KEY_FACTORY_ALGORITHM);
+            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, 1, keyLength);
+            SecretKey secretKey = skf.generateSecret(spec);
+            SecretKeySpec key = new SecretKeySpec(secretKey.getEncoded(), algorithm);
 
-            KeyGenerator keygen = KeyGenerator.getInstance("DES");
-            SecretKey desKey = keygen.generateKey();
-
-            return desKey;
+            return key;
         }
 
         public byte[] decrypt(final byte[] data) throws Exception {
-            SecretKey secretKey = generateSecretKey(password, this.cipher.getAlgorithm());
-            cipher.init(Cipher.DECRYPT_MODE, this.secretKey);
+            SecretKeySpec secretKey = generateSecretKey(password, cipherName, this.cipherMode);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
             byte[] plaintext = cipher.doFinal(data);
             return plaintext;
         }
@@ -146,12 +158,12 @@ public class EncryptingSteganographer extends Steganographer {
         @Override
         public String toString() {
             return "CipherHandle{" +
-                    "password='" + password + '\'' +
-                    ", cipher=" + cipher +
-                    ", cipherName='" + cipherName + '\'' +
-                    ", cipherMode='" + cipherMode + '\'' +
-                    ", keyLength=" + keyLength +
-                    '}';
+                "password='" + password + '\'' +
+                ", cipher=" + cipher +
+                ", cipherName='" + cipherName + '\'' +
+                ", cipherMode='" + cipherMode + '\'' +
+                ", keyLength=" + keyLength +
+                '}';
         }
     }
 }

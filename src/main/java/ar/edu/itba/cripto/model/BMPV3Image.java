@@ -17,6 +17,9 @@ public class BMPV3Image {
             if (parseHeader.isCompressed) {
                 throw new IOException("BMP shouldn't be compressed");
             }
+            if (parseHeader.bitsPerPixel != 24) {
+                throw new IOException("BMP should be 24 bits-per-pixel only");
+            }
 
             this.header = parseHeader;
             this.imageData = data;
