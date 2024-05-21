@@ -3,7 +3,7 @@ package ar.edu.itba.cripto.commands;
 import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.EncryptingSteganographer;
 import ar.edu.itba.cripto.model.Steganographer;
-import ar.edu.itba.cripto.steganography.LSB4Algorithm;
+import ar.edu.itba.cripto.steganography.LSBAlgorithm;
 import ar.edu.itba.cripto.steganography.SteganographyAlgorithm;
 import org.apache.commons.io.FileUtils;
 import picocli.CommandLine.Command;
@@ -19,19 +19,19 @@ public class EmbedCommand implements Callable<Integer> {
     @Spec
     Model.CommandSpec spec;
 
-    @Option(names = "-in", paramLabel = "INPUT_FILE", required = false,
+    @Option(names = "-in", paramLabel = "INPUT_FILE", required = true,
         description = "Archivo que se va a ocultar")
     File inputFile;
 
-    @Option(names = "-p", paramLabel = "COVER", required = false,
+    @Option(names = "-p", paramLabel = "COVER", required = true,
         description = "Archivo bmp que será el portador")
     File coverImage;
 
-    @Option(names = "-out", paramLabel = "OUTPUT_FILE", required = false,
+    @Option(names = "-out", paramLabel = "OUTPUT_FILE", required = true,
         description = "Archivo bmp de salida")
     File outputFile;
 
-    @Option(names = "-steg", paramLabel = "STEG", required = false,
+    @Option(names = "-steg", paramLabel = "STEG", required = true,
         description = "Algoritmo de esteganografiado: <LSB1 | LSB4 | LSBI>")
     String stegName;
 
@@ -48,15 +48,18 @@ public class EmbedCommand implements Callable<Integer> {
 
     public static void main(String[] args) throws Exception {
 
-        File inputFile = new File("../peste.txt");
-        File cover = new File("../bmp_images/RAY.BMP");
-        File output = new File("../escondido.bmp");
+        File inputFile = new File("../funes.txt");
+        File cover = new File("../bmp_images/blackbuck.bmp");
+        SteganographyAlgorithm steg = new LSBAlgorithm();
+
+        File output = new File("../" + inputFile.getName() + steg.getName() + ".bmp");
+
         String desencriptado = "../desencriptado";
 
-        EncryptingSteganographer encrypter = new EncryptingSteganographer(new LSB4Algorithm(),
-            "aes256",
+        EncryptingSteganographer encrypter = new EncryptingSteganographer(steg,
+            "des",
             "ofb",
-            "password");
+            "trigonomia");
 
         try {
             encrypter.embed(inputFile, cover, output);

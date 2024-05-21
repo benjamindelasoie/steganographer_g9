@@ -21,13 +21,18 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
     public LSBAlgorithm() {
     }
 
+    @Override
+    public String getName() {
+        return "LSB";
+    }
+
     public void hideData(final byte[] msg, File cover, File outputFile) throws IOException {
         BMPV3Image bmp = new BMPV3Image();
         bmp.loadFromFile(cover.getPath());
 
 
         if (!this.canHideData(msg, bmp)) {
-            throw new NotEnoughSpaceInImageException(bmp.getHeight() * bmp.getWidth() * 3);
+            throw new NotEnoughSpaceInImageException(bmp.getSize(), msg.length * msgToCoverRatio);
         }
 
         byte[] imageData = bmp.getImageData();

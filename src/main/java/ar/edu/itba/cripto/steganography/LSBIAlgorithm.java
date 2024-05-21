@@ -8,6 +8,11 @@ import java.io.IOException;
 // TODO: Implement
 public class LSBIAlgorithm extends SteganographyAlgorithm {
     @Override
+    public String getName() {
+        return "LSBI";
+    }
+
+    @Override
     public void hideData(final byte[] data, final File cover, final File outputFile) throws IOException {
     }
 

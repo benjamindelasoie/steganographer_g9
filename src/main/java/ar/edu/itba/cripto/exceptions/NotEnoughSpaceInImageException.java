@@ -2,10 +2,13 @@ package ar.edu.itba.cripto.exceptions;
 
 public class NotEnoughSpaceInImageException extends RuntimeException {
     public int maxMessageLength;
+    public int receivedMessageLength;
 
-    public NotEnoughSpaceInImageException(int maxMessageLength) {
-        super("There is not enough space in the image for this message. Max space: " + maxMessageLength);
+    public NotEnoughSpaceInImageException(int maxMessageLength, int receivedMessageLength) {
+        super(String.format("Received request to encode %d bytes in image with available size = %d bytes",
+            receivedMessageLength, maxMessageLength));
         this.maxMessageLength = maxMessageLength;
+        this.receivedMessageLength = receivedMessageLength;
     }
 
     public int getMaxMessageLength() {

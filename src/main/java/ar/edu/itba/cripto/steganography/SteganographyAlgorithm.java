@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 
 public abstract class SteganographyAlgorithm {
+    public abstract String getName();
 
     public static SteganographyAlgorithm getInstance(String name) {
         switch (name) {
