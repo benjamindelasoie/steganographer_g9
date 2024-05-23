@@ -26,21 +26,25 @@ public class Steganographer {
     }
 
     public void embed(File inputFile, File cover, File outputFile) throws Exception {
-        logger.info("Embed call for {} on cover {} out to {}", inputFile, cover, outputFile);
-
         // Construyo el mensaje tamaño + data + extension
         byte[] fileInfo = buildByteArray(inputFile);
 
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         // Aplico el esteganografiado a través del algoritmo
         this.stegAlgorithm.hideData(fileInfo, cover, outputFile);
+
+        //// Guardo en el archivo
+        //try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+        //    byteArrayOutputStream.writeTo(fos);
+        //}
     }
 
     public void extract(File file, String outputFile) throws Exception {
         // Extraigo los bytes usando el algoritmo
         byte[] rawData = this.stegAlgorithm.extractData(file);
-
         // Leo los componentes del mensaje
         int messageLength = readLength(rawData);
+        System.out.println("messageLength = " + messageLength);
         byte[] fileData = readFileData(rawData, LENGTH_SIZE, LENGTH_SIZE + messageLength);
         String extension = readExtension(rawData, LENGTH_SIZE + messageLength);
 
@@ -59,7 +63,7 @@ public class Steganographer {
         buffer.putInt(messageLength);
         buffer.rewind();
         byte[] lengthBytes = buffer.array();
-
+        System.out.println("length bytes = " + Arrays.toString(lengthBytes) + " = " + messageLength);
         baos.write(lengthBytes);
         baos.write(data);
         baos.write(".".getBytes(StandardCharsets.UTF_8));
@@ -67,6 +71,15 @@ public class Steganographer {
         baos.write('\0');
 
         return baos.toByteArray();
+    }
+
+    public static Steganographer getSteganographer(String stegAlgo, String cipherName, String cipherModeName, String password) throws Exception {
+        SteganographyAlgorithm algo = SteganographyAlgorithm.getInstance(stegAlgo);
+        if (password == null) {
+            return new Steganographer(algo);
+        } else {
+            return new EncryptingSteganographer(algo, cipherName, cipherModeName, password);
+        }
     }
 
     String readExtension(final byte[] rawData, final int offset) {

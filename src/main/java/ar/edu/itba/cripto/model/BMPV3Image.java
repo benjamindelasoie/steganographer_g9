@@ -4,6 +4,7 @@ import org.apache.commons.io.EndianUtils;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class BMPV3Image {
     private BMPV3HeaderInfo header;
@@ -49,9 +50,13 @@ public class BMPV3Image {
     @Override
     public String toString() {
         return "BMPV3Image{" +
-                "header=" + header +
-                ", imageData=" + imageData.length + " bytes" +
-                '}';
+            "header=" + header +
+            ", imageData=" + imageData.length + " bytes" +
+            '}';
+    }
+
+    public byte[] getHeaderByteArray() {
+        return Arrays.copyOfRange(this.imageData, 0, this.getDataOffset());
     }
 
     private record BMPV3HeaderInfo(int size, int dataOffset,
