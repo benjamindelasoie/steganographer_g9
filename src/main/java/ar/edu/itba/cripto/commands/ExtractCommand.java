@@ -9,8 +9,12 @@ import picocli.CommandLine.Option;
 import java.io.File;
 import java.util.concurrent.Callable;
 
-@Command(name = "-extract")
+@Command(name = "-extract", sortOptions = false, sortSynopsis = false,
+    mixinStandardHelpOptions = true,
+    description = {"Extract a hidden file out of a bmp image"})
 public class ExtractCommand implements Callable<Integer> {
+    public static final Logger logger = LoggerFactory.getLogger(ExtractCommand.class);
+
     @Option(names = "-p", paramLabel = "COVER", required = true,
         description = "Archivo bmp portador")
     File bitmapFile;
@@ -35,8 +39,6 @@ public class ExtractCommand implements Callable<Integer> {
         description = "Password de encripción")
     String password;
 
-    public static final Logger logger = LoggerFactory.getLogger(ExtractCommand.class);
-
     @Override
     public Integer call() throws Exception {
         logger.info("Start of extract command with parameters: {} {} {} {} {} {}",
@@ -44,7 +46,10 @@ public class ExtractCommand implements Callable<Integer> {
 
         validate();
 
-        Steganographer steganographer = Steganographer.getSteganographer(stegName, cipherName, cipherModeName, password);
+        Steganographer steganographer = Steganographer.getSteganographer(stegName,
+            cipherName,
+            cipherModeName,
+            password);
 
         steganographer.extract(bitmapFile, outputFile);
 

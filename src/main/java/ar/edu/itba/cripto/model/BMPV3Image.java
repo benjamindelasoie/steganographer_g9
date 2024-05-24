@@ -27,14 +27,6 @@ public class BMPV3Image {
         }
     }
 
-    public int getHeight() {
-        return this.header.height;
-    }
-
-    public int getWidth() {
-        return this.header.width;
-    }
-
     public int getDataOffset() {
         return header.dataOffset;
     }
@@ -59,11 +51,6 @@ public class BMPV3Image {
         return Arrays.copyOfRange(this.imageData, 0, this.getDataOffset());
     }
 
-    private record BMPV3HeaderInfo(int size, int dataOffset,
-                                   int width, int height,
-                                   int bitsPerPixel, boolean isCompressed) {
-    }
-
     private BMPV3HeaderInfo parseHeader(byte[] dataBytes) {
         int size = EndianUtils.readSwappedInteger(dataBytes, 2);
         int dataOffset = EndianUtils.readSwappedInteger(dataBytes, 10);
@@ -73,5 +60,10 @@ public class BMPV3Image {
         boolean isCompressed = EndianUtils.readSwappedInteger(dataBytes, 30) != 0;
 
         return new BMPV3HeaderInfo(size, dataOffset, width, height, bitsPerPixel, isCompressed);
+    }
+
+    private record BMPV3HeaderInfo(int size, int dataOffset,
+                                   int width, int height,
+                                   int bitsPerPixel, boolean isCompressed) {
     }
 }

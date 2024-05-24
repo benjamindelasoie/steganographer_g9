@@ -4,7 +4,6 @@ import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.BMPV3Image;
 import org.apache.commons.io.FileUtils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 
@@ -25,42 +24,6 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
     @Override
     public String getName() {
         return "LSB";
-    }
-
-    public void hideData(final byte[] msg, File coverFile, ByteArrayOutputStream outputStream) throws IOException {
-        BMPV3Image bmp = new BMPV3Image();
-        bmp.loadFromFile(coverFile.getPath());
-
-        if (!this.canHideData(msg, bmp)) {
-            throw new NotEnoughSpaceInImageException(bmp.getSize(), msg.length * msgToCoverRatio);
-        }
-
-        outputStream.write(bmp.getHeaderByteArray());
-        byte[] imageData = bmp.getImageData();
-        int offset = bmp.getDataOffset();
-
-        for (int i = 0; i < msg.length; i++) {
-            for (int j = 0; j < msgToCoverRatio; j++) {
-
-                // Agarro el byte de la imagen indicado
-                byte imageByte = imageData[offset + (i * msgToCoverRatio) + j];
-
-                // Limpio los ultimos SIGNIFICANT_BITS bits del byte de la imagen.
-                imageByte &= (byte) ~(mask);
-
-                // Agarro los bits que tengo que esconder.
-                byte bitsToHide = (byte) ((msg[i] >> (8 - (j + 1) * significantBits)) & (mask));
-
-                // El esteganografiado propiamente dicho
-                imageByte |= bitsToHide;
-
-                // Seteo el output
-                outputStream.write(imageByte);
-            }
-        }
-
-        outputStream.write(imageData, offset + (msg.length * msgToCoverRatio),
-            imageData.length - (offset + (msg.length * msgToCoverRatio)));
     }
 
     public void hideData(final byte[] msg, File cover, File outputFile) throws IOException {
@@ -99,7 +62,6 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
         FileUtils.writeByteArrayToFile(outputFile, outputData);
     }
 
-
     @Override
     public byte[] extractData(File coverFile) throws IOException {
         BMPV3Image img = new BMPV3Image();
@@ -128,4 +90,5 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
     protected boolean canHideData(final byte[] data, BMPV3Image coverImage) {
         return data.length * msgToCoverRatio <= coverImage.getSize();
     }
+
 }

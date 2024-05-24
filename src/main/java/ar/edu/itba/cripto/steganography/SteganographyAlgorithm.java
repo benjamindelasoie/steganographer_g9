@@ -2,13 +2,10 @@ package ar.edu.itba.cripto.steganography;
 
 import ar.edu.itba.cripto.model.BMPV3Image;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 
 public abstract class SteganographyAlgorithm {
-    public abstract String getName();
-
 
     public static SteganographyAlgorithm getInstance(String name) {
         switch (name) {
@@ -25,11 +22,11 @@ public abstract class SteganographyAlgorithm {
         }
     }
 
+    public abstract String getName();
+
     public abstract void hideData(byte[] data, File cover, File outputFile) throws IOException;
 
     public abstract byte[] extractData(File image) throws IOException;
 
     abstract boolean canHideData(final byte[] data, BMPV3Image coverImage);
-
-    public abstract void hideData(final byte[] fileInfo, final File cover, final ByteArrayOutputStream baos) throws IOException;
 }

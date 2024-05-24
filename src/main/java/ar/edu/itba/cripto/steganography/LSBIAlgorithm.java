@@ -4,7 +4,6 @@ import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.BMPV3Image;
 import org.apache.commons.io.FileUtils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -168,15 +167,14 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         return data.length * msgToCoverRatio + 4 <= bmp.getSize();
     }
 
-    @Override
-    public void hideData(final byte[] fileInfo, final File cover, final ByteArrayOutputStream baos) throws IOException {
-
-    }
-
     private static class PatternOccurrence {
         private final Byte pattern;
         private long same = 0;
         private long changed = 0;
+
+        public PatternOccurrence(final Byte pattern) {
+            this.pattern = pattern;
+        }
 
         private void addChanged() {
             this.changed++;
@@ -186,20 +184,12 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
             this.same++;
         }
 
-        public Byte getPattern() {
-            return pattern;
-        }
-
         public long getSame() {
             return same;
         }
 
         public long getChanged() {
             return changed;
-        }
-
-        public PatternOccurrence(final Byte pattern) {
-            this.pattern = pattern;
         }
 
         public boolean shouldInvert() {

@@ -7,19 +7,21 @@ import ar.edu.itba.cripto.steganography.SteganographyAlgorithm;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Model;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Spec;
 
 import java.io.File;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Callable;
 
-@Command(name = "-embed", sortOptions = false)
+@SuppressWarnings("ALL")
+@Command(name = "-embed", sortOptions = false, sortSynopsis = false,
+    mixinStandardHelpOptions = true,
+    description = {"Embed any type of file on a .bmp file with optional encryption"})
 public class EmbedCommand implements Callable<Integer> {
-    @Spec
-    Model.CommandSpec spec;
 
     @Option(names = "-in", paramLabel = "INPUT_FILE", required = true,
         description = "Archivo que se va a ocultar")
@@ -53,44 +55,27 @@ public class EmbedCommand implements Callable<Integer> {
         File inputFile = new File("../funes.txt");
         File cover = new File("../bmp_images/blackbuck.bmp");
         SteganographyAlgorithm steg = new LSBIAlgorithm();
-
-        File output = new File(FilenameUtils.removeExtension(String.valueOf(inputFile))
+        File embedded = new File(FilenameUtils.removeExtension(String.valueOf(inputFile))
             + "_" + steg.getName() + "_" + LocalTime.now().truncatedTo(ChronoUnit.SECONDS) + ".bmp");
-
-        String desencriptado = "../desencriptado";
+        File extractionFile = new File(FilenameUtils.removeExtension(String.valueOf(embedded)) + "_extraction");
 
         Steganographer steganographer = Steganographer.getSteganographer("LSBI",
             "aes128", "cbc", "turuleca");
 
-        steganographer.embed(inputFile, cover, output);
+        steganographer.embed(inputFile, cover, embedded);
+        steganographer.extract(embedded, extractionFile.getPath());
 
-        steganographer.extract(output, "../output");
-
-        //EncryptingSteganographer encrypter = new EncryptingSteganographer(steg,
-        //    "des",
-        //    "ofb",
-        //    "trigonomia");
-        //
-        //try {
-        //    encrypter.embed(inputFile, cover, output);
-        //    encrypter.extract(output, desencriptado);
-        //} catch (NotEnoughSpaceInImageException exception) {
-        //    System.out.println(exception.getMessage());
-        //}
-
-        if (FileUtils.contentEquals(inputFile, new File("../desencriptado.txt"))) {
+        if (FileUtils.contentEquals(inputFile, extractionFile)) {
             System.out.println("exito: input y output son iguales");
         } else {
             System.out.println("No son iguales");
         }
-
     }
 
     @Override
     public Integer call() throws Exception {
         validate();
 
-        // Instantiate steganographer
         Steganographer steganographer = Steganographer.getSteganographer(stegName, cipherName, cipherModeName, password);
 
         try {
@@ -99,6 +84,10 @@ public class EmbedCommand implements Callable<Integer> {
             System.out.println(notEnoughSpaceInImageException.getMessage());
         }
 
+        Integer[] arr = new Integer[]{1, 2, 3, 4, 3, 3, 5};
+        List<Integer> list = Arrays.stream(arr).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+        list.removeIf(e -> e.equals(3));
+        list.toArray(arr);
         return 0;
     }
 
