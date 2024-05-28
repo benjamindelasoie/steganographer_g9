@@ -50,6 +50,10 @@ public class Steganographer {
         }
     }
 
+    public static Steganographer getSteganographer(final String steg) {
+        return new Steganographer(SteganographyAlgorithm.getInstance(steg));
+    }
+
     public void embed(File inputFile, File cover, File outputFile) throws Exception {
         // Construyo el mensaje tamaño + data + extension
         byte[] fileInfo = buildByteArray(inputFile);
@@ -62,14 +66,17 @@ public class Steganographer {
     public void extract(File file, String outputFile) throws Exception {
         // Extraigo los bytes usando el algoritmo
         byte[] rawData = this.stegAlgorithm.extractData(file);
+
         // Leo los componentes del mensaje
         int messageLength = readLength(rawData);
         System.out.println("messageLength = " + messageLength);
+
         byte[] fileData = readFileData(rawData, LENGTH_SIZE, LENGTH_SIZE + messageLength);
+
         String extension = readExtension(rawData, LENGTH_SIZE + messageLength);
 
         // Genero el archivo de salida en base a lo extraído
-        FileUtils.writeByteArrayToFile(new File("../" + outputFile + extension), fileData);
+        FileUtils.writeByteArrayToFile(new File(outputFile + extension), fileData);
     }
 
     String readExtension(final byte[] rawData, final int offset) {
@@ -90,9 +97,6 @@ public class Steganographer {
 
         ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
         buffer.put(lengthBytes).rewind();
-        int value = buffer.getInt();
-
-        System.out.println("length = " + value);
-        return value;
+        return buffer.getInt();
     }
 }

@@ -13,6 +13,7 @@ public class CipherHandle {
     public static final String KEY_FACTORY_ALGORITHM = "PBKDF2WithHmacSHA256";
     private final static String DEFAULT_PADDING = "PKCS5Padding";
     private static final byte[] FIXED_SALT = "FIXED_SALT".getBytes();
+    private static final int ITERATION_COUNT = 1000;
     private final String password;
     private final Cipher cipher;
     private final String cipherName;
@@ -37,12 +38,10 @@ public class CipherHandle {
                 keyLength = 256;
             }
             case "des" -> {
-                cipherName = "DES";
-                keyLength = 64;
+                cipherName = "DESede";
+                keyLength = 192;
             }
-            default -> {
-                throw new InvalidParameterException("Invalid cipher: " + cipher);
-            }
+            default -> throw new InvalidParameterException("Invalid cipher: " + cipher);
         }
 
         switch (mode) {
@@ -90,7 +89,7 @@ public class CipherHandle {
         System.out.println("password = " + password + ", algorithm = " + algorithm + ", mode = " + mode);
 
         SecretKeyFactory skf = SecretKeyFactory.getInstance(KEY_FACTORY_ALGORITHM);
-        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, 1,
+        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, ITERATION_COUNT,
             keyLength + cipher.getBlockSize() * (requiresIv ? 1 : 0));
         SecretKey secretKey = skf.generateSecret(spec);
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getEncoded(), algorithm);
@@ -108,7 +107,7 @@ public class CipherHandle {
 
     public byte[] decrypt(final byte[] data) throws Exception {
         KeyAndIv keyAndIv = generateSecretKey(password, cipherName, this.cipherMode);
-        if (cipherMode.equals("ECB")) {
+        if (!this.requiresIv) {
             cipher.init(Cipher.DECRYPT_MODE,
                 new SecretKeySpec(keyAndIv.key(), cipherName));
         } else {
@@ -129,6 +128,7 @@ public class CipherHandle {
             ", keyLength=" + keyLength +
             '}';
     }
+
 
     protected record KeyAndIv(byte[] key, byte[] iv) {
     }

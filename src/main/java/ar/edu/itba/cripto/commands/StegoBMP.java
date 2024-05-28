@@ -9,9 +9,7 @@ import picocli.CommandLine.Command;
     footer = {"Grupo 9 - Criptografía y Seguridad - 1C 2024"},
     description = "Steganography functionalities with optional encryption.")
 public final class StegoBMP {
-    private StegoBMP() {
-
-    }
+    private StegoBMP() {}
 
     public static void main(final String[] args) {
         System.exit(new CommandLine(new StegoBMP()).execute(args));

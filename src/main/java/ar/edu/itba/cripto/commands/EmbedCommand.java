@@ -2,16 +2,10 @@ package ar.edu.itba.cripto.commands;
 
 import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.Steganographer;
-import ar.edu.itba.cripto.steganography.LSBIAlgorithm;
-import ar.edu.itba.cripto.steganography.SteganographyAlgorithm;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.File;
-import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,24 +46,30 @@ public class EmbedCommand implements Callable<Integer> {
 
     public static void main(String[] args) throws Exception {
 
-        File inputFile = new File("../funes.txt");
-        File cover = new File("../bmp_images/blackbuck.bmp");
-        SteganographyAlgorithm steg = new LSBIAlgorithm();
-        File embedded = new File(FilenameUtils.removeExtension(String.valueOf(inputFile))
-            + "_" + steg.getName() + "_" + LocalTime.now().truncatedTo(ChronoUnit.SECONDS) + ".bmp");
-        File extractionFile = new File(FilenameUtils.removeExtension(String.valueOf(embedded)) + "_extraction");
+        //File inputFile = new File("../jugueterabioso.txt");
+        //File cover = new File("../bmp_images/greenland_grid_velo.bmp");
+        //SteganographyAlgorithm steg = new LSBIAlgorithm();
+        //File embedded = new File(FilenameUtils.removeExtension(String.valueOf(inputFile))
+        //    + "_" + steg.getName() + "_" + LocalTime.now().truncatedTo(ChronoUnit.SECONDS) + ".bmp");
+        //
+        //File extractionFile = new File(FilenameUtils.removeExtension(String.valueOf(embedded)) + "_extraction");
+        //
+        //Steganographer steganographer = Steganographer.getSteganographer("LSBI",
+        //    "des", "cbc", null);
+        //
+        //steganographer.embed(inputFile, cover, embedded);
+        //steganographer.extract(embedded, extractionFile.getPath());
+        //
+        //if (FileUtils.contentEquals(inputFile, extractionFile)) {
+        //    System.out.println("exito: input y output son iguales");
+        //} else {
+        //    System.out.println("No son iguales");
+        //}
 
-        Steganographer steganographer = Steganographer.getSteganographer("LSBI",
-            "aes128", "cbc", "turuleca");
+        File bmp = new File("../ejemplo2024/ladoLSBI.bmp");
+        Steganographer steganographer = Steganographer.getSteganographer("LSBI");
+        steganographer.extract(bmp, "../ejemplosalidalsbi");
 
-        steganographer.embed(inputFile, cover, embedded);
-        steganographer.extract(embedded, extractionFile.getPath());
-
-        if (FileUtils.contentEquals(inputFile, extractionFile)) {
-            System.out.println("exito: input y output son iguales");
-        } else {
-            System.out.println("No son iguales");
-        }
     }
 
     @Override

@@ -25,6 +25,10 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         BMPV3Image cover = new BMPV3Image();
         cover.loadFromFile(coverFile.getPath());
 
+        if (!canHideData(msg, cover)) {
+            throw new NotEnoughSpaceInImageException(cover.getSize(), msg.length * msgToCoverRatio + 4);
+        }
+
         byte[] imageData = cover.getImageData();
         int offset = cover.getDataOffset();
         byte[] result = imageData.clone();
@@ -36,9 +40,6 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         Map<Byte, PatternOccurrence> patternMap = new TreeMap<>();
         byte imageByte;
 
-        if (!canHideData(msg, cover)) {
-            throw new NotEnoughSpaceInImageException(cover.getSize(), msg.length * msgToCoverRatio + 4);
-        }
 
         // Realizamos la primer pasada llevando cuenta de que patrones cambiamos y cuales no.
         for (int i = 0; i < msg.length; i++) {
@@ -69,7 +70,6 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
 
                 // Seteo el output
                 result[imageIndex] = imageByte;
-                System.out.printf("result[%d] = %s\n", imageIndex, Integer.toBinaryString(imageByte));
             }
         }
 
@@ -93,13 +93,10 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
                 imageByte &= ~(1);
             }
 
-            System.out.printf("result[%d] = %s\n", imageIndex, Integer.toBinaryString(imageByte));
+            System.out.println("pattern " + b + " " + patternMap.getOrDefault(b, new PatternOccurrence(b)));
+
             result[imageIndex++] = imageByte;
         }
-
-        patternMap.forEach((k, v) -> System.out.printf("%s \t shouldInvert = %b\n", v, v.shouldInvert()));
-        long sum = patternMap.values().stream().map(v -> v.getSame() + v.getChanged()).reduce(0L, Long::sum);
-        System.out.println("sum = " + sum + " | size = " + (result.length - offset + 1));
 
         // Realizo la inversión donde corresponda, si es que hay que hacer una al menos.
         if (patternMap.values().stream().anyMatch(PatternOccurrence::shouldInvert)) {
@@ -132,6 +129,7 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         for (byte i = 0; i < 4; i++) {
             imageByte = imageData[offset + i];
             lsb = (imageByte & 1) != 0;
+            System.out.printf("Byte %d inverts : %b\n", i, lsb);
             inversionMap.put(i, lsb);
         }
 
@@ -148,14 +146,17 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
                 // Me fijo el patron y el lsb.
                 pattern = (byte) ((imageByte >> 1) & 0b00000011);
                 lsb = (imageByte & 1) != 0;
-
+                System.out.println("pattern = " + pattern + " invert = " + inversionMap.get(pattern));
+                System.out.println("lsb = " + lsb);
                 // Si el patron se invirtio, invierto el lsb.
                 if (inversionMap.get(pattern)) {
                     lsb = !lsb;
                 }
-
+                System.out.println("lsb = " + lsb);
                 if (lsb) {
                     extractByte |= (byte) (1 << (7 - j));
+                } else {
+                    extractByte &= (byte) ~(1 << (7 - j));
                 }
             }
             extractedData[i] = extractByte;
