@@ -1,17 +1,20 @@
 package ar.edu.itba.cripto.model;
 
 import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidParameterException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 public class CipherHandle {
     public static final String KEY_FACTORY_ALGORITHM = "PBKDF2WithHmacSHA256";
-    private final static String DEFAULT_PADDING = "PKCS5Padding";
+    private static final String DEFAULT_PADDING = "PKCS5Padding";
     private static final byte[] FIXED_SALT = "FIXED_SALT".getBytes();
     private static final int ITERATION_COUNT = 1000;
     private final String password;
@@ -21,7 +24,7 @@ public class CipherHandle {
     private final int keyLength;
     private boolean requiresIv = true;
 
-    public CipherHandle(String cipher, String mode, String password) throws Exception {
+    public CipherHandle(String cipher, String mode, String password) {
         this.password = password;
 
         switch (cipher) {
@@ -62,7 +65,13 @@ public class CipherHandle {
         }
 
         String transformation = cipherName + "/" + cipherMode + "/" + DEFAULT_PADDING;
-        this.cipher = Cipher.getInstance(transformation);
+        try {
+            this.cipher = Cipher.getInstance(transformation);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public byte[] encrypt(final byte[] data) throws Exception {
@@ -84,11 +93,12 @@ public class CipherHandle {
         return cipher.doFinal(data);
     }
 
-    private KeyAndIv generateSecretKey(String password, String algorithm, String mode) throws Exception {
+    private KeyAndIv generateSecretKey(String password, String algorithm, String mode) throws NoSuchAlgorithmException, InvalidKeySpecException {
         System.out.println("CipherHandle.generateSecretKey");
         System.out.println("password = " + password + ", algorithm = " + algorithm + ", mode = " + mode);
 
         SecretKeyFactory skf = SecretKeyFactory.getInstance(KEY_FACTORY_ALGORITHM);
+
         PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, ITERATION_COUNT,
             keyLength + cipher.getBlockSize() * (requiresIv ? 1 : 0));
         SecretKey secretKey = skf.generateSecret(spec);
@@ -131,7 +141,30 @@ public class CipherHandle {
 
 
     protected record KeyAndIv(byte[] key, byte[] iv) {
-    }
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            final KeyAndIv keyAndIv = (KeyAndIv) o;
+            return Arrays.equals(key, keyAndIv.key) && Arrays.equals(iv, keyAndIv.iv);
+        }
 
+        @Override
+        public int hashCode() {
+            int result = Arrays.hashCode(key);
+            result = 31 * result + Arrays.hashCode(iv);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "KeyAndIv{" +
+                "key=" + Arrays.toString(key) +
+                ", iv=" + Arrays.toString(iv) +
+                '}';
+        }
+    }
 }
 

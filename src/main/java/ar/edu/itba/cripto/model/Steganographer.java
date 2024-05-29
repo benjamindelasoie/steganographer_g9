@@ -64,8 +64,10 @@ public class Steganographer {
     }
 
     public void extract(File file, String outputFile) throws Exception {
+        System.out.println("file.length() = " + file.length());
         // Extraigo los bytes usando el algoritmo
         byte[] rawData = this.stegAlgorithm.extractData(file);
+        System.out.println("rawData.length = " + rawData.length);
 
         // Leo los componentes del mensaje
         int messageLength = readLength(rawData);

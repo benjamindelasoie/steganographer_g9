@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-// TODO: Implement
 public class LSBIAlgorithm extends SteganographyAlgorithm {
     private static final int PATTERN_SIZE = 4;
     private final int msgToCoverRatio = 8;
@@ -126,11 +125,12 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         boolean lsb;
 
         // Leo los patrones de inversion
-        for (byte i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             imageByte = imageData[offset + i];
+            System.out.println("imageByte = " + Integer.toBinaryString(imageByte));
             lsb = (imageByte & 1) != 0;
             System.out.printf("Byte %d inverts : %b\n", i, lsb);
-            inversionMap.put(i, lsb);
+            inversionMap.put((byte) i, lsb);
         }
 
         int imgIndex;
@@ -146,13 +146,12 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
                 // Me fijo el patron y el lsb.
                 pattern = (byte) ((imageByte >> 1) & 0b00000011);
                 lsb = (imageByte & 1) != 0;
-                System.out.println("pattern = " + pattern + " invert = " + inversionMap.get(pattern));
-                System.out.println("lsb = " + lsb);
+
                 // Si el patron se invirtio, invierto el lsb.
                 if (inversionMap.get(pattern)) {
                     lsb = !lsb;
                 }
-                System.out.println("lsb = " + lsb);
+
                 if (lsb) {
                     extractByte |= (byte) (1 << (7 - j));
                 } else {

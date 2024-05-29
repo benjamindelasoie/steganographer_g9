@@ -23,7 +23,7 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
 
     @Override
     public String getName() {
-        return "LSB";
+        return "LSB1";
     }
 
     public void hideData(final byte[] msg, File cover, File outputFile) throws IOException {

@@ -2,13 +2,16 @@ package ar.edu.itba.cripto.commands;
 
 import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.Steganographer;
+import ar.edu.itba.cripto.steganography.LSBIAlgorithm;
+import ar.edu.itba.cripto.steganography.SteganographyAlgorithm;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.Callable;
 
 @SuppressWarnings("ALL")
@@ -46,29 +49,33 @@ public class EmbedCommand implements Callable<Integer> {
 
     public static void main(String[] args) throws Exception {
 
-        //File inputFile = new File("../jugueterabioso.txt");
-        //File cover = new File("../bmp_images/greenland_grid_velo.bmp");
-        //SteganographyAlgorithm steg = new LSBIAlgorithm();
-        //File embedded = new File(FilenameUtils.removeExtension(String.valueOf(inputFile))
-        //    + "_" + steg.getName() + "_" + LocalTime.now().truncatedTo(ChronoUnit.SECONDS) + ".bmp");
-        //
-        //File extractionFile = new File(FilenameUtils.removeExtension(String.valueOf(embedded)) + "_extraction");
-        //
-        //Steganographer steganographer = Steganographer.getSteganographer("LSBI",
-        //    "des", "cbc", null);
-        //
-        //steganographer.embed(inputFile, cover, embedded);
-        //steganographer.extract(embedded, extractionFile.getPath());
-        //
-        //if (FileUtils.contentEquals(inputFile, extractionFile)) {
-        //    System.out.println("exito: input y output son iguales");
-        //} else {
-        //    System.out.println("No son iguales");
-        //}
+        File inputFile = new File("../inputs/itba.png");
+        File cover = new File("../bmp_images/lado.bmp");
 
-        File bmp = new File("../ejemplo2024/ladoLSBI.bmp");
-        Steganographer steganographer = Steganographer.getSteganographer("LSBI");
-        steganographer.extract(bmp, "../ejemplosalidalsbi");
+
+        System.out.println("input file length = " + inputFile.length());
+        SteganographyAlgorithm steg = new LSBIAlgorithm();
+
+        File embedded = new File(FilenameUtils.removeExtension(String.valueOf(inputFile))
+            + "_" + steg.getName() + "_" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH_mm_ss")) + ".bmp");
+
+        File extractionFile = new File(FilenameUtils.removeExtension(String.valueOf(embedded)) + "_extraction");
+
+        Steganographer steganographer = Steganographer.getSteganographer(steg.getName(),
+            "des", "cbc", null);
+
+        steganographer.embed(inputFile, cover, embedded);
+        steganographer.extract(embedded, extractionFile.getPath());
+
+        if (FileUtils.contentEquals(inputFile, extractionFile)) {
+            System.out.println("exito: input y output son iguales");
+        } else {
+            System.out.println("No son iguales");
+        }
+
+        //File bmp = new File("../ejemplo2024/ladoLSB4.bmp");
+        //Steganographer steganographer = Steganographer.getSteganographer("LSB4");
+        //steganographer.extract(bmp, "../ejemplosalidalsbi_eee");
 
     }
 
@@ -84,10 +91,6 @@ public class EmbedCommand implements Callable<Integer> {
             System.out.println(notEnoughSpaceInImageException.getMessage());
         }
 
-        Integer[] arr = new Integer[]{1, 2, 3, 4, 3, 3, 5};
-        List<Integer> list = Arrays.stream(arr).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-        list.removeIf(e -> e.equals(3));
-        list.toArray(arr);
         return 0;
     }
 
