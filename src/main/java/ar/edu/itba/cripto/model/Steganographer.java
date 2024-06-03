@@ -14,6 +14,11 @@ import java.util.Arrays;
 
 public class Steganographer {
     public static final int LENGTH_SIZE = 4;
+
+    public SteganographyAlgorithm getStegAlgorithm() {
+        return stegAlgorithm;
+    }
+
     protected final SteganographyAlgorithm stegAlgorithm;
 
     public Steganographer(final SteganographyAlgorithm stegAlgorithm) {
@@ -100,5 +105,9 @@ public class Steganographer {
         ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
         buffer.put(lengthBytes).rewind();
         return buffer.getInt();
+    }
+
+    public String getFilenameStub() {
+        return "_" + stegAlgorithm.getName();
     }
 }

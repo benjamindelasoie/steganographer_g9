@@ -2,19 +2,12 @@ package ar.edu.itba.cripto.commands;
 
 import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.Steganographer;
-import ar.edu.itba.cripto.steganography.LSBIAlgorithm;
-import ar.edu.itba.cripto.steganography.SteganographyAlgorithm;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.File;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.Callable;
 
-@SuppressWarnings("ALL")
 @Command(name = "-embed", sortOptions = false, sortSynopsis = false,
     mixinStandardHelpOptions = true,
     description = {"Embed any type of file on a .bmp file with optional encryption"})
@@ -48,35 +41,34 @@ public class EmbedCommand implements Callable<Integer> {
     String password;
 
     public static void main(String[] args) throws Exception {
+        String cipherName = "des";
+        String cipherMode = "cfb";
 
-        File inputFile = new File("../inputs/itba.png");
+        Steganographer steganographer = Steganographer.getSteganographer("LSBI",
+            "aes256",
+            "cbc",
+            "margarita");
+
+
+        File input = new File("../inputs/funes.txt");
         File cover = new File("../bmp_images/lado.bmp");
+        File embedded = new File("../embedded" + steganographer.getFilenameStub() + ".bmp");
 
+        steganographer.embed(input, cover, embedded);
 
-        System.out.println("input file length = " + inputFile.length());
-        SteganographyAlgorithm steg = new LSBIAlgorithm();
+        String extractionFilename = "../extraccion" + steganographer.getFilenameStub();
 
-        File embedded = new File(FilenameUtils.removeExtension(String.valueOf(inputFile))
-            + "_" + steg.getName() + "_" + LocalTime.now().format(DateTimeFormatter.ofPattern("HH_mm_ss")) + ".bmp");
+        steganographer.extract(embedded, extractionFilename);
 
-        File extractionFile = new File(FilenameUtils.removeExtension(String.valueOf(embedded)) + "_extraction");
+    }
 
-        Steganographer steganographer = Steganographer.getSteganographer(steg.getName(),
-            "des", "cbc", null);
+    public static void ejemploCatedra() throws Exception {
+        Steganographer steganographer = Steganographer.getSteganographer("LSBI",
+            "des",
+            "cfb",
+            "margarita");
 
-        steganographer.embed(inputFile, cover, embedded);
-        steganographer.extract(embedded, extractionFile.getPath());
-
-        if (FileUtils.contentEquals(inputFile, extractionFile)) {
-            System.out.println("exito: input y output son iguales");
-        } else {
-            System.out.println("No son iguales");
-        }
-
-        //File bmp = new File("../ejemplo2024/ladoLSB4.bmp");
-        //Steganographer steganographer = Steganographer.getSteganographer("LSB4");
-        //steganographer.extract(bmp, "../ejemplosalidalsbi_eee");
-
+        steganographer.extract(new File("../ejemplo2024/ladoLSBIdescfb.bmp"), "../AVERGA");
     }
 
     @Override

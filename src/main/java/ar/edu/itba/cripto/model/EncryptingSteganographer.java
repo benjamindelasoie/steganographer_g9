@@ -1,12 +1,12 @@
 package ar.edu.itba.cripto.model;
 
 import ar.edu.itba.cripto.steganography.SteganographyAlgorithm;
-import org.apache.commons.io.EndianUtils;
 import org.apache.commons.io.FileUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class EncryptingSteganographer extends Steganographer {
@@ -19,7 +19,13 @@ public class EncryptingSteganographer extends Steganographer {
 
     static byte[] buildCypherByteArray(byte[] cyphertext) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        EndianUtils.writeSwappedInteger(baos, cyphertext.length);
+
+        int cyphertextLength = cyphertext.length;
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        buffer.putInt(cyphertextLength);
+        buffer.rewind();
+        byte[] lengthBytes = buffer.array();
+        baos.write(lengthBytes);
         baos.write(cyphertext);
 
         return baos.toByteArray();
@@ -47,7 +53,7 @@ public class EncryptingSteganographer extends Steganographer {
         byte[] coverData = this.stegAlgorithm.extractData(cover);
 
         // Descompongo el mensaje cifrado: tamaño | cifrado
-        int cypherLength = EndianUtils.readSwappedInteger(coverData, 0);
+        int cypherLength = readLength(coverData);
         System.out.println("cypherLength = " + cypherLength);
         byte[] plaintext = cipherHandle.decrypt(Arrays.copyOfRange(coverData, LENGTH_SIZE, LENGTH_SIZE + cypherLength));
 
@@ -62,4 +68,10 @@ public class EncryptingSteganographer extends Steganographer {
         FileUtils.writeByteArrayToFile(new File(outputFile + extension), fileData);
     }
 
+    @Override
+    public String getFilenameStub() {
+        return "_" + stegAlgorithm.getName()
+            + "_" + cipherHandle.getCipherName()
+            + "_" + cipherHandle.getCipherMode();
+    }
 }
