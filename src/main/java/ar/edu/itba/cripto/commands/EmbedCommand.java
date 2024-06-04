@@ -45,12 +45,13 @@ public class EmbedCommand implements Callable<Integer> {
         String cipherMode = "cfb";
 
         Steganographer steganographer = Steganographer.getSteganographer("LSBI",
-            "aes256",
-            "cbc",
-            "margarita");
+            cipherName,
+            cipherMode,
+            "margarita"
+        );
 
 
-        File input = new File("../inputs/funes.txt");
+        File input = new File("../inputs/itba.png");
         File cover = new File("../bmp_images/lado.bmp");
         File embedded = new File("../embedded" + steganographer.getFilenameStub() + ".bmp");
 
@@ -60,15 +61,19 @@ public class EmbedCommand implements Callable<Integer> {
 
         steganographer.extract(embedded, extractionFilename);
 
+        //ejemploCatedra();
+
     }
 
     public static void ejemploCatedra() throws Exception {
         Steganographer steganographer = Steganographer.getSteganographer("LSBI",
-            "des",
-            "cfb",
+            "aes256",
+            "ofb",
             "margarita");
 
-        steganographer.extract(new File("../ejemplo2024/ladoLSBIdescfb.bmp"), "../AVERGA");
+        //Steganographer steganographer = Steganographer.getSteganographer("LSBI");
+
+        steganographer.extract(new File("../ejemplo2024/ladoLSBIdescfb.bmp"), "../resultado");
     }
 
     @Override
@@ -81,6 +86,8 @@ public class EmbedCommand implements Callable<Integer> {
             steganographer.embed(inputFile, coverImage, outputFile);
         } catch (NotEnoughSpaceInImageException notEnoughSpaceInImageException) {
             System.out.println(notEnoughSpaceInImageException.getMessage());
+        } catch (RuntimeException e) {
+            System.out.println("Unexpected exception: " + e.getMessage());
         }
 
         return 0;

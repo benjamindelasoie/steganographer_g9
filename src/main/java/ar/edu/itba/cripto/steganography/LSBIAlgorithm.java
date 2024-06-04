@@ -4,6 +4,7 @@ import ar.edu.itba.cripto.exceptions.NotEnoughSpaceInImageException;
 import ar.edu.itba.cripto.model.BMPV3Image;
 import org.apache.commons.io.FileUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -41,9 +42,14 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
 
 
         // Realizamos la primer pasada llevando cuenta de que patrones cambiamos y cuales no.
+        imageIndex = offset + PATTERN_SIZE;
         for (int i = 0; i < msg.length; i++) {
-            for (int j = 0; j < msgToCoverRatio; j++) {
-                imageIndex = offset + PATTERN_SIZE + (i * msgToCoverRatio) + j;
+            int j = 0;
+
+            while (j < msgToCoverRatio) {
+                if (imageIndex % 3 == 2) {
+                    imageIndex++;
+                }
 
                 // Agarro el byte de la imagen indicado
                 imageByte = imageData[imageIndex];
@@ -69,16 +75,20 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
 
                 // Seteo el output
                 result[imageIndex] = imageByte;
+                imageIndex++;
+                j++;
             }
         }
 
-        // Despues de los bytes del mensaje, el resto el bmp quedó igual.
-        while (imageIndex < imageData.length) {
-            pattern = (byte) ((imageData[imageIndex] >> 1) & 0b00000011);
-            patternMap.putIfAbsent(pattern, new PatternOccurrence(pattern));
-            patternMap.get(pattern).addSame();
-            imageIndex++;
-        }
+        // Esto de aca abajo al final no es asi. Se cuentan solo los que se tocaron ( <= msg.length )
+
+        //// Despues de los bytes del mensaje, el resto el bmp quedó igual.
+        //while (imageIndex < imageData.length) {
+        //    pattern = (byte) ((imageData[imageIndex] >> 1) & 0b00000011);
+        //    patternMap.putIfAbsent(pattern, new PatternOccurrence(pattern));
+        //    patternMap.get(pattern).addSame();
+        //    imageIndex++;
+        //}
 
 
         // Seteo el lsb de los primeros 4 bytes para el patron de inversion.
@@ -99,8 +109,8 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
 
         // Realizo la inversión donde corresponda, si es que hay que hacer una al menos.
         if (patternMap.values().stream().anyMatch(PatternOccurrence::shouldInvert)) {
-            for (int i = offset; i < result.length; i++) {
-                pattern = (byte) ((result[i] >> 1) & 0b00000011);
+            for (int i = offset + PATTERN_SIZE; i < result.length; i++) {
+                pattern = getPattern(result[i]);
                 if (patternMap.getOrDefault(pattern, new PatternOccurrence(pattern)).shouldInvert()) {
                     result[i] = (byte) (result[i] ^ 1);
                 }
@@ -116,7 +126,6 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         BMPV3Image img = new BMPV3Image();
         img.loadFromFile(image.getPath());
 
-
         byte[] imageData = img.getImageData();
         int offset = img.getDataOffset();
         byte imageByte;
@@ -127,44 +136,49 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         // Leo los patrones de inversion
         for (int i = 0; i < 4; i++) {
             imageByte = imageData[offset + i];
-            System.out.println("imageByte = " + Integer.toBinaryString(imageByte));
-            lsb = (imageByte & 1) != 0;
+            lsb = getLSB(imageByte);
             System.out.printf("Byte %d inverts : %b\n", i, lsb);
             inversionMap.put((byte) i, lsb);
         }
 
-        int imgIndex;
+        ByteArrayOutputStream extractionOutput = new ByteArrayOutputStream();
+        int extractionBitIndex;
         byte pattern;
-        byte[] extractedData = new byte[(img.getSize() - 4) / msgToCoverRatio];
-        for (int i = 0; i < extractedData.length; i++) {
-            byte extractByte = 0;
-            for (int j = 0; j < msgToCoverRatio; j++) {
-                // Agarro el byte de la imagen
-                imgIndex = offset + 4 + i * msgToCoverRatio + j;
-                imageByte = imageData[imgIndex];
+        int imageIndex = offset + 4;
+        while (imageIndex < imageData.length - 12) {
+            byte extractedByte = 0;
+            extractionBitIndex = 0;
 
-                // Me fijo el patron y el lsb.
-                pattern = (byte) ((imageByte >> 1) & 0b00000011);
-                lsb = (imageByte & 1) != 0;
+            while (extractionBitIndex < 8) {
+                // Salteo los bytes de color rojo (caen siempre en % 2)
+                if (imageIndex % 3 != 2) {
+                    imageByte = imageData[imageIndex];
+                    pattern = getPattern(imageByte);
+                    lsb = getLSB(imageByte);
 
-                // Si el patron se invirtio, invierto el lsb.
-                if (inversionMap.get(pattern)) {
-                    lsb = !lsb;
+                    if (inversionMap.get(pattern)) {
+                        lsb = !lsb;
+                    }
+
+                    if (lsb) {
+                        extractedByte |= (byte) (1 << (7 - extractionBitIndex));
+                    } else {
+                        extractedByte &= (byte) ~(1 << (7 - extractionBitIndex));
+                    }
+                    extractionBitIndex++;
                 }
 
-                if (lsb) {
-                    extractByte |= (byte) (1 << (7 - j));
-                } else {
-                    extractByte &= (byte) ~(1 << (7 - j));
-                }
+                imageIndex++;
             }
-            extractedData[i] = extractByte;
+
+            extractionOutput.write(extractedByte);
         }
-        return extractedData;
+
+        return extractionOutput.toByteArray();
     }
 
     public boolean canHideData(final byte[] data, final BMPV3Image bmp) {
-        return data.length * msgToCoverRatio + 4 <= bmp.getSize();
+        return data.length * msgToCoverRatio + 4 <= (bmp.getSize() / 3) * 2;
     }
 
     private static class PatternOccurrence {
@@ -204,5 +218,13 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
                 ", changed=" + changed +
                 '}';
         }
+    }
+
+    private static byte getPattern(byte b) {
+        return (byte) ((b >> 1) & 0b00000011);
+    }
+
+    private static boolean getLSB(byte b) {
+        return (b & 1) != 0;
     }
 }

@@ -100,7 +100,9 @@ public class CipherHandle {
         return cipher.doFinal(data);
     }
 
-    private KeyAndIv generateSecretKey(String password, String algorithm, String mode) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private KeyAndIv generateSecretKey(String password, String algorithm, String mode)
+        throws NoSuchAlgorithmException, InvalidKeySpecException {
+
         System.out.println("CipherHandle.generateSecretKey");
         System.out.println("password = " + password + ", algorithm = " + algorithm + ", mode = " + mode);
 
