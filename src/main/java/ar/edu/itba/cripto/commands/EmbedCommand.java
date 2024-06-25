@@ -17,27 +17,27 @@ public class EmbedCommand implements Callable<Integer> {
         description = "Archivo que se va a ocultar")
     File inputFile;
 
-    @Option(names = "-p", paramLabel = "COVER", required = true,
+    @Option(names = {"-p", "-cover"}, paramLabel = "COVER", required = true,
         description = "Archivo bmp que será el portador")
     File coverImage;
 
-    @Option(names = "-out", paramLabel = "OUTPUT_FILE", required = true,
+    @Option(names = {"-o", "-out"}, paramLabel = "OUTPUT_FILE", required = true,
         description = "Archivo bmp de salida")
     File outputFile;
 
-    @Option(names = "-steg", paramLabel = "STEG", required = true,
+    @Option(names = {"-s", "-steg"}, paramLabel = "STEG", required = true,
         description = "Algoritmo de esteganografiado: <LSB1 | LSB4 | LSBI>")
     String stegName;
 
-    @Option(names = "-a", paramLabel = "CIPHER", defaultValue = "aes128",
+    @Option(names = {"-a", "-cipher"}, paramLabel = "CIPHER", defaultValue = "aes128",
         description = "Algoritmo de encriptado: <aes128 | aes192 | aes256 | des>")
     String cipherName;
 
-    @Option(names = "-m", paramLabel = "MODE", defaultValue = "cbc",
+    @Option(names = {"-m", "-mode"}, paramLabel = "MODE", defaultValue = "cbc",
         description = "Modo de cifrado de bloque: <ecb | cfb | ofb | cbc>")
     String cipherModeName;
 
-    @Option(names = "-pass", paramLabel = "PASSWORD", description = "Password de encripción")
+    @Option(names = {"-c", "-pass"}, paramLabel = "PASSWORD", description = "Password de encripción")
     String password;
 
     public static void main(String[] args) throws Exception {
