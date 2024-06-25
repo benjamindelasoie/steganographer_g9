@@ -22,6 +22,8 @@ public class BMPV3Image {
                 throw new IOException("BMP should be 24 bits-per-pixel only");
             }
 
+            System.out.println(parseHeader);
+
             this.header = parseHeader;
             this.imageData = data;
         }
@@ -65,5 +67,16 @@ public class BMPV3Image {
     private record BMPV3HeaderInfo(int size, int dataOffset,
                                    int width, int height,
                                    int bitsPerPixel, boolean isCompressed) {
+        @Override
+        public String toString() {
+            return "BMPV3HeaderInfo{" +
+                "size=" + size +
+                ", dataOffset=" + dataOffset +
+                ", width=" + width +
+                ", height=" + height +
+                ", bitsPerPixel=" + bitsPerPixel +
+                ", isCompressed=" + isCompressed +
+                '}';
+        }
     }
 }

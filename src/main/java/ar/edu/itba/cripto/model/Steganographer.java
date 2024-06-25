@@ -70,6 +70,7 @@ public class Steganographer {
 
     public void extract(File file, String outputFile) throws Exception {
         System.out.println("file.length() = " + file.length());
+
         // Extraigo los bytes usando el algoritmo
         byte[] rawData = this.stegAlgorithm.extractData(file);
         System.out.println("rawData.length = " + rawData.length);
@@ -81,6 +82,7 @@ public class Steganographer {
         byte[] fileData = readFileData(rawData, LENGTH_SIZE, LENGTH_SIZE + messageLength);
 
         String extension = readExtension(rawData, LENGTH_SIZE + messageLength);
+        System.out.println("extension = " + extension);
 
         // Genero el archivo de salida en base a lo extraído
         FileUtils.writeByteArrayToFile(new File(outputFile + extension), fileData);

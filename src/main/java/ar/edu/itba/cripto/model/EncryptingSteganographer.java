@@ -7,6 +7,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 public class EncryptingSteganographer extends Steganographer {
@@ -43,6 +45,10 @@ public class EncryptingSteganographer extends Steganographer {
         byte[] cypherMessage = buildCypherByteArray(cyphertext);
 
         this.stegAlgorithm.hideData(cypherMessage, cover, outputFile);
+    }
+
+    public void printKeyAndIv() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        cipherHandle.printKeyAndIv();
     }
 
     @Override

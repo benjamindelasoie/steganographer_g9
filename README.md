@@ -61,7 +61,7 @@ To embed any file inside a .bmp file, run:
 
 ```bash
 ./stegobmp.sh -embed -in=INPUT_FILE -p=COVER -out=outputFile -steg=ALGO \
-  [-a=CYPHER -m=MODE -p=PASSWORD]
+  [-a=CYPHER -m=MODE -pass=PASSWORD]
 ```
 
 ### Extracting
@@ -70,7 +70,7 @@ If you have a bmp image which you know has data embedded on, you can extract by 
 
 ```bash
 ./stegobmp.sh -extract -p=COVER -out=OUTPUT_NAME -steg=ALGO \
-   [a=CYPHER -m=MODE -p=PASSWORD]
+   [-a=CYPHER -m=MODE -pass=PASSWORD]
 ```
 
 ### Supported Algorithms

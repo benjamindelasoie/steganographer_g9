@@ -2,7 +2,6 @@ package ar.edu.itba.cripto.model;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
@@ -10,14 +9,17 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 
 public class CipherHandle {
     public static final String KEY_FACTORY_ALGORITHM = "PBKDF2WithHmacSHA256";
     private static final String DEFAULT_PADDING = "PKCS5Padding";
-    private static final byte[] FIXED_SALT = "FIXED_SALT".getBytes();
-    private static final int ITERATION_COUNT = 1000;
+    public static final String NO_PADDING = "NoPadding";
+    private static final byte[] FIXED_SALT = new byte[]{0, 0, 0, 0, 0, 0, 0, 0};
+    private static final int ITERATION_COUNT = 10000;
+
     private final String password;
     private final Cipher cipher;
     private final String cipherName;
@@ -73,11 +75,11 @@ public class CipherHandle {
             default -> throw new InvalidParameterException("Invalid mode: " + mode);
         }
 
-        String transformation = cipherName + "/" + cipherMode + "/" + DEFAULT_PADDING;
+        String transformation = cipherName + "/" + cipherMode + "/" + NO_PADDING;
         try {
             this.cipher = Cipher.getInstance(transformation);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            throw new RuntimeException(e);
+            throw new InvalidParameterException(e);
         }
     }
 
@@ -100,26 +102,25 @@ public class CipherHandle {
         return cipher.doFinal(data);
     }
 
+    public void printKeyAndIv() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        KeyAndIv keyAndIv = generateSecretKey(password, cipherName, cipherMode);
+        System.out.println(keyAndIv);
+    }
+
     private KeyAndIv generateSecretKey(String password, String algorithm, String mode)
         throws NoSuchAlgorithmException, InvalidKeySpecException {
 
         System.out.println("CipherHandle.generateSecretKey");
-        System.out.println("password = " + password + ", algorithm = " + algorithm + ", mode = " + mode);
+        System.out.println("password = " + password + ", algorithm = " + algorithm + ", mode = " + mode + "keyLength = " + keyLength);
 
         SecretKeyFactory skf = SecretKeyFactory.getInstance(KEY_FACTORY_ALGORITHM);
+        KeySpec spec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, ITERATION_COUNT,
+            keyLength + cipher.getBlockSize() * 8);
 
-        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), FIXED_SALT, 1,
-            keyLength + cipher.getBlockSize() * (requiresIv ? 1 : 0));
-        SecretKey secretKey = skf.generateSecret(spec);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getEncoded(), algorithm);
-        byte[] bytes = secretKeySpec.getEncoded();
+        byte[] hash = skf.generateSecret(spec).getEncoded();
 
-        byte[] key = Arrays.copyOfRange(bytes, 0, keyLength / 8);
-        byte[] iv = new byte[0];
-        System.out.println("cipher.getBlockSize() = " + cipher.getBlockSize());
-        if (requiresIv) {
-            iv = Arrays.copyOfRange(bytes, keyLength / 8, (keyLength / 8 + cipher.getBlockSize()));
-        }
+        byte[] key = Arrays.copyOfRange(hash, 0, keyLength / 8);
+        byte[] iv = Arrays.copyOfRange(hash, keyLength / 8, keyLength / 8 + cipher.getBlockSize());
 
         return new KeyAndIv(key, iv);
     }
@@ -128,14 +129,14 @@ public class CipherHandle {
         KeyAndIv keyAndIv = generateSecretKey(password, cipherName, this.cipherMode);
         System.out.println("keyAndIv = " + keyAndIv);
 
-        if (!this.requiresIv) {
-            cipher.init(Cipher.DECRYPT_MODE,
-                new SecretKeySpec(keyAndIv.key(), cipherName));
-        } else {
+        if (this.requiresIv) {
             cipher.init(Cipher.DECRYPT_MODE,
                 new SecretKeySpec(keyAndIv.key(), cipherName),
                 new IvParameterSpec(keyAndIv.iv()));
+        } else {
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keyAndIv.key(), cipherName));
         }
+
         return cipher.doFinal(data);
     }
 
@@ -154,10 +155,12 @@ public class CipherHandle {
     public record KeyAndIv(byte[] key, byte[] iv) {
         @Override
         public boolean equals(final Object o) {
-            if (this == o)
+            if (this == o) {
                 return true;
-            if (o == null || getClass() != o.getClass())
+            }
+            if (o == null || getClass() != o.getClass()) {
                 return false;
+            }
             final KeyAndIv keyAndIv = (KeyAndIv) o;
             return Arrays.equals(key, keyAndIv.key) && Arrays.equals(iv, keyAndIv.iv);
         }
@@ -171,8 +174,8 @@ public class CipherHandle {
 
         @Override
         public String toString() {
-            return "key=" + Base64.getEncoder().encodeToString(key) + "\n"
-                + ", iv=" + Base64.getEncoder().encodeToString(iv);
+            return "key = " + Base64.getEncoder().encodeToString(key) + "\n"
+                + "iv = " + Base64.getEncoder().encodeToString(iv);
         }
     }
 }

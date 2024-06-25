@@ -67,7 +67,6 @@ public class LSBAlgorithm extends SteganographyAlgorithm {
         BMPV3Image img = new BMPV3Image();
         img.loadFromFile(coverFile.getPath());
 
-
         byte[] imageData = img.getImageData();
         int offset = img.getDataOffset();
         byte[] extractedData = new byte[img.getSize() / msgToCoverRatio];

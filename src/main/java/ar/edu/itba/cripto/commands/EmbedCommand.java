@@ -10,7 +10,7 @@ import java.util.concurrent.Callable;
 
 @Command(name = "-embed", sortOptions = false, sortSynopsis = false,
     mixinStandardHelpOptions = true,
-    description = {"Embed any type of file on a .bmp file with optional encryption"})
+    description = {"Embed any type of file on a .bmp image, with optional encryption"})
 public class EmbedCommand implements Callable<Integer> {
 
     @Option(names = "-in", paramLabel = "INPUT_FILE", required = true,
@@ -41,39 +41,13 @@ public class EmbedCommand implements Callable<Integer> {
     String password;
 
     public static void main(String[] args) throws Exception {
-        String cipherName = "des";
-        String cipherMode = "cfb";
+        Steganographer steganographer = Steganographer.getSteganographer("LSB1",
+            "aes128", "cbc", "exitoso");
 
-        Steganographer steganographer = Steganographer.getSteganographer("LSBI",
-            cipherName,
-            cipherMode,
-            "margarita"
-        );
+        File cover = new File("../grupo9/quito.bmp");
+        String output = "../outputs/quito";
 
-
-        File input = new File("../inputs/itba.png");
-        File cover = new File("../bmp_images/lado.bmp");
-        File embedded = new File("../embedded" + steganographer.getFilenameStub() + ".bmp");
-
-        steganographer.embed(input, cover, embedded);
-
-        String extractionFilename = "../extraccion" + steganographer.getFilenameStub();
-
-        steganographer.extract(embedded, extractionFilename);
-
-        //ejemploCatedra();
-
-    }
-
-    public static void ejemploCatedra() throws Exception {
-        Steganographer steganographer = Steganographer.getSteganographer("LSBI",
-            "aes256",
-            "ofb",
-            "margarita");
-
-        //Steganographer steganographer = Steganographer.getSteganographer("LSBI");
-
-        steganographer.extract(new File("../ejemplo2024/ladoLSBIdescfb.bmp"), "../resultado");
+        steganographer.extract(cover, output);
     }
 
     @Override

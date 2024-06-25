@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class LSBIAlgorithm extends SteganographyAlgorithm {
     private static final int PATTERN_SIZE = 4;
@@ -32,16 +31,11 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         byte[] imageData = cover.getImageData();
         int offset = cover.getDataOffset();
         byte[] result = imageData.clone();
-        int imageIndex = offset;
-        byte pattern;
-        boolean imageLSB;
         boolean bitToHide;
-        PatternOccurrence patternOccurrence;
-        Map<Byte, PatternOccurrence> patternMap = new TreeMap<>();
         byte imageByte;
 
-
-        // Realizamos la primer pasada llevando cuenta de que patrones cambiamos y cuales no.
+        int imageIndex;
+        // Realizamos el estanografiado LSB1.
         imageIndex = offset + PATTERN_SIZE;
         for (int i = 0; i < msg.length; i++) {
             int j = 0;
@@ -53,19 +47,7 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
 
                 // Agarro el byte de la imagen indicado
                 imageByte = imageData[imageIndex];
-
-                pattern = (byte) ((imageByte >> 1) & 0b00000011);
-                imageLSB = (imageByte & 1) != 0;
                 bitToHide = (msg[i] >> (7 - j) & 1) != 0;
-
-                patternMap.putIfAbsent(pattern, new PatternOccurrence(pattern));
-
-                patternOccurrence = patternMap.get(pattern);
-                if (imageLSB == bitToHide) {
-                    patternOccurrence.addSame();
-                } else {
-                    patternOccurrence.addChanged();
-                }
 
                 if (bitToHide) {
                     imageByte |= 1;
@@ -80,16 +62,29 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
             }
         }
 
-        // Esto de aca abajo al final no es asi. Se cuentan solo los que se tocaron ( <= msg.length )
+        int embeddingEndIndex = imageIndex;
+        System.out.println("msg.length = " + msg.length);
+        System.out.println(msg.length * 12);
+        System.out.println("embeddingEndIndex = " + embeddingEndIndex);
+        Map<Byte, PatternOccurrence> patternMap = new HashMap<>();
+        for (byte b = 0; b < 4; b++) {
+            patternMap.put(b, new PatternOccurrence(b));
+        }
 
-        //// Despues de los bytes del mensaje, el resto el bmp quedó igual.
-        //while (imageIndex < imageData.length) {
-        //    pattern = (byte) ((imageData[imageIndex] >> 1) & 0b00000011);
-        //    patternMap.putIfAbsent(pattern, new PatternOccurrence(pattern));
-        //    patternMap.get(pattern).addSame();
-        //    imageIndex++;
-        //}
+        // Vemos cuantos cambiaron y cuantos no.
+        for (int i = offset + PATTERN_SIZE; i < embeddingEndIndex; i++) {
+            if (getPattern(imageData[i]) != getPattern(result[i])) {
+                throw new RuntimeException("Corrupted embedding at index " + i);
+            }
 
+            byte pattern = getPattern(imageData[i]);
+
+            if (getLSB(imageData[i]) == getLSB(result[i])) {
+                patternMap.get(pattern).addSame();
+            } else {
+                patternMap.get(pattern).addChanged();
+            }
+        }
 
         // Seteo el lsb de los primeros 4 bytes para el patron de inversion.
         imageIndex = offset;
@@ -110,7 +105,7 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
         // Realizo la inversión donde corresponda, si es que hay que hacer una al menos.
         if (patternMap.values().stream().anyMatch(PatternOccurrence::shouldInvert)) {
             for (int i = offset + PATTERN_SIZE; i < result.length; i++) {
-                pattern = getPattern(result[i]);
+                byte pattern = getPattern(result[i]);
                 if (patternMap.getOrDefault(pattern, new PatternOccurrence(pattern)).shouldInvert()) {
                     result[i] = (byte) (result[i] ^ 1);
                 }
@@ -128,6 +123,7 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
 
         byte[] imageData = img.getImageData();
         int offset = img.getDataOffset();
+        System.out.println("offset = " + offset);
         byte imageByte;
 
         Map<Byte, Boolean> inversionMap = new HashMap<>();
@@ -178,7 +174,7 @@ public class LSBIAlgorithm extends SteganographyAlgorithm {
     }
 
     public boolean canHideData(final byte[] data, final BMPV3Image bmp) {
-        return data.length * msgToCoverRatio + 4 <= (bmp.getSize() / 3) * 2;
+        return data.length * 12 + PATTERN_SIZE <= bmp.getSize();
     }
 
     private static class PatternOccurrence {
